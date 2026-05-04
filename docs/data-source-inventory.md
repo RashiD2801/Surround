@@ -1,6 +1,6 @@
 # Data Source Inventory — Krakow Air Quality Project
 
-**Last updated:** December 2024  
+**Last updated:** 04/05/26 
 **Team:** Rim, Martina, Rashi, Bhavana
 
 ---
