@@ -1,22 +1,4 @@
-# Output Sketch v0
-
-> One page. Hand-drawn is fine. This is what the user sees at the end of
-> Session 7.
->
-> By Session 7 you are not delivering a graph. You are delivering something
-> a professional can act on. Start sketching what that thing looks like
-> today, even if it changes 5 times.
->
-> Not a product spec. A sketch. The point: you can't know what data you
-> need until you know what you're delivering.
->
-> Save as `docs/output-sketch-v0.md` in your repo.
-
----
-
 ## What is the final output?
-
-*Choose one form and describe it in one sentence.*
 
 - [x] Dashboard *(interactive web UI with maps / filters / tables)*
 - [ ] Annotated map / report *(static, designed to be read)*
@@ -27,7 +9,6 @@
 - [ ] API service
 - [ ] Other: 
 
-**One-sentence description of the output:**
 
 > A web dashboard where a planning analyst searches for a development site address, sees predicted PM2.5 on an interactive map, picks 2-3 interventions from a ranked table, and clicks a button to download a 2-page PDF report for the planning committee.
 
@@ -78,10 +59,6 @@ the shortlist" is.*
 ---
 
 ## Sketch
-
-*Embed an image. Hand-drawn on paper, photographed. Figma wireframe.
-Excalidraw. Screenshot of an analogous existing tool with annotations.
-Whatever — one image, one page.*
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -134,8 +111,6 @@ Whatever — one image, one page.*
 ---
 
 ## What this output is NOT
-
-*Two bullets. Protects against scope creep. Be honest.*
 
 - **NOT a real-time air quality monitor.** This shows predictions based on urban form (greenness, roads, buildings), not current weather-driven pollution. It won't tell you if today is a bad air day. Use it for planning decisions (where to require interventions), not daily health alerts.
 
