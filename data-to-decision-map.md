@@ -1,19 +1,3 @@
-# Data → Decision Map
-
-> The bridge from your problem brief to your data inventory. For each
-> sub-question in the brief, which dataset answers it, and at what
-> confidence?
->
-> If any sub-question has NO data backing it, you have two choices:
-> 1. Find a new source.
-> 2. Revise the brief (`problem-brief-v2.md`).
->
-> There is no third option called "we'll figure it out later."
->
-> Save as `docs/data-to-decision-map.md` in your repo.
-
----
-
 ## The map
 
 | Brief sub-question | Primary data source | Secondary source | Confidence (H/M/L) | Notes |
@@ -81,4 +65,5 @@
 ## Sign-off
 
 **Team:** Rim, Martina, Rashi, Bhavana  
-**Last updated:** 2024-12-15
+**Last updated:** 04/05/26
+
