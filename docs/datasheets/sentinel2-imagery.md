@@ -3,8 +3,8 @@
 **Dataset:** Copernicus Sentinel-2 Level-2A Surface Reflectance  
 **Access:** Google Earth Engine (GEE)  
 **Resolution:** 10 meters  
-**Created by:** Martina  
-**Date:** December 2024
+**Created by:** Rim, Martina, Bhavana, Rashi
+**Date:** 04-05-26
 
 ---
 

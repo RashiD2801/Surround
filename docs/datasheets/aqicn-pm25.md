@@ -3,7 +3,7 @@
 **Dataset:** World Air Quality Index (AQICN) - Krakow stations  
 **Pollutant:** PM2.5 (fine particulate matter)  
 **Time period:** 2019-2024  
-**Created by:** Martina 
+**Created by:** Rim, Martina, Bhavana, Rashi
 **Date:** 04-05-2026
 
 ---
