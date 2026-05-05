@@ -1,18 +1,3 @@
-# System Sketch v0
-
-> One-page diagram + descriptions. Forces you to think system, not script.
->
-> Master's-level architecture and design students aren't shipping a
-> notebook script — you're shipping a **system** a professional can use.
-> Drawing the system surfaces the seams that don't yet have data, the
-> arrows where logic is missing, and the boundaries that protect you
-> from scope creep.
->
-> Save as `docs/system-sketch-v0.md` in your repo. GitHub renders Mermaid
-> blocks natively in markdown — no extra tools needed.
-
----
-
 ## The diagram
 
 ```mermaid
@@ -55,7 +40,6 @@ flowchart LR
 
 ## Component descriptions
 
-### Sources *(left side — what comes in)*
 
 - **AQICN PM2.5**
   - What it provides: Hourly PM2.5 measurements (µg/m³) from ~10 Krakow stations, 2019-2024
@@ -81,7 +65,7 @@ flowchart LR
   - Format / cadence: NetCDF via CDS API, monthly bulk downloads
   - Datasheet: (not required for secondary sources)
 
-### Processing *(middle — what happens)*
+### Processing 
 
 - **Download & clean**
   - **Input:** Raw API responses (JSON, GeoTIFF, GeoJSON, NetCDF)
@@ -123,7 +107,7 @@ flowchart LR
   - **Output:** `outputs/intervention_ranking.csv` (scenario, delta_pm25, uncertainty)
   - **Transformation:** Modify features (e.g., NDVI +0.3 for green corridor), re-predict, compute difference from baseline
 
-### Output *(right side — what the user sees)*
+### Output 
 
 - **Form:** Dashboard (Streamlit web app with interactive map, sortable table, PDF export button)
 - **What the user does with it:** Planning analyst clicks on development site, reads predicted PM2.5, selects top 2-3 interventions from ranked table, clicks "Generate PDF", attaches PDF to zoning variance memo for committee.
@@ -135,8 +119,6 @@ flowchart LR
 
 ### In scope
 
-*What this system explicitly does. Use bullets that name capabilities.*
-
 - Predict PM2.5 at any 100m grid cell in Krakow (with uncertainty ±8-30 µg/m³ depending on distance to stations)
 - Rank 4 interventions (green corridor, traffic calming, green roofs, park) by predicted pollution reduction
 - Generate 2-page PDF report with site map, current PM2.5, top 3 interventions, and limitations
@@ -144,8 +126,6 @@ flowchart LR
 - Show interactive map where analyst can click any location and see prediction + contributing factors
 
 ### Out of scope
-
-*What this system explicitly does NOT do. This protects you from scope creep.*
 
 - No real-time forecasting (historical analysis 2019-2024 only, no "what will PM2.5 be tomorrow")
 - No cost-benefit analysis (ranks interventions by impact, not € per µg/m³)
@@ -156,27 +136,8 @@ flowchart LR
 
 ---
 
-## Open seams
-
-*Where in the diagram is data missing? Where is logic uncertain? Name 1–3
-seams. These are tomorrow's problems made visible.*
-
-- **Seam 1: Atmospheric bias in Sentinel-2 NDVI**
-  - Why it's a seam: Polluted air creates haze → Sentinel-2 sees lower NDVI on polluted days even if vegetation unchanged. This could create backwards correlation (pollution causes low NDVI, not vegetation causes low pollution).
-  - Plan: Test by comparing NDVI on high-PM2.5 vs low-PM2.5 clear-sky days. If bias confirmed >5% NDVI difference, use summer-only Sentinel-2 data or add boundary layer height as control variable.
-
-- **Seam 2: Spatial interpolation beyond 2km**
-  - Why it's a seam: Only 10 AQICN stations. Kriging predictions >2km from nearest station are educated guesses (±30% uncertainty). 40% of Krakow is in this zone.
-  - Plan: Create uncertainty map showing confidence by distance to stations. Flag predictions >2km as "low confidence" in dashboard. Model card documents this explicitly.
-
-- **Seam 3: Intervention extrapolation**
-  - Why it's a seam: Model trained on existing conditions (NDVI 0.1-0.6 range). Interventions like "add dense forest" (NDVI 0.9) are outside training data. Predictions unreliable.
-  - Plan: Only model interventions within observed NDVI range (green corridors NDVI +0.2-0.3, not +0.5). Document in PDF report: "Estimates are associations, not guaranteed outcomes. Pilot testing recommended."
-
----
-
 ## Sign-off
 
 **Team:** Rim, Martina, Rashi, Bhavana  
 **Drawn by:** Rashi  
-**Last updated:** 2024-12-15
+**Last updated:** 04-05-26
