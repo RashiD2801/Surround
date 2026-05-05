@@ -3,8 +3,8 @@
 **Dataset:** World Air Quality Index (AQICN) - Krakow stations  
 **Pollutant:** PM2.5 (fine particulate matter)  
 **Time period:** 2019-2024  
-**Created by:** Rim  
-**Date:** December 2024
+**Created by:** Martina 
+**Date:** 04-05-2026
 
 ---
 
@@ -62,7 +62,7 @@ AQI: 118 (Unhealthy for sensitive groups)
 
 ---
 
-## What's Missing or Broken
+## What's Missing 
 
 ### Gaps we found:
 
