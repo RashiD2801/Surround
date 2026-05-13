@@ -10,7 +10,7 @@
 - **Dataset:** AQICN PM2.5 measurements, Krakow stations, 2019-2024
 - **Profiling notebook:** `notebooks/01-data-profiling.ipynb`
 - **Audit performed by:** Rim, Martina, Rashi, Bhavana
-- **Date:** December 2024
+- **Date:** 04-05-2026
 
 ---
 
