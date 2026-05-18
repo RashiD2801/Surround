@@ -34,8 +34,8 @@ Comparing Cities ( Could be future inclusion )
 ---
 Team
 Mafia	Role on this project
-[Rim]	[]
-[Martina]	[]
-[Rashi]	[]
-[Bhavana]	[]
+[Rim]	[Data Scientist]
+[Martina]	[Data Scientist]
+[Rashi]	[Data Scientist]
+[Bhavana]	[Data Scientist]
 > Roles are loose — they help you divide work, 

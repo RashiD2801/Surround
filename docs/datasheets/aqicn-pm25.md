@@ -225,12 +225,14 @@ See `data-source-inventory.md` for full list.
 Downloaded 2019-2024 for 10 stations successfully. Total ~400k rows (after dropping invalids). Stored in `data/raw/aqicn/`.
 
 **Issues found:**
-- Station "Złoty Róg" has suspicious gap Dec 2022 - investigate
+- Station "Złoty Róg" Dec 2022 gap — **partially resolved:** Rashi's anomaly scan confirmed Złoty Róg reads 20-30% lower than neighbouring stations under identical weather conditions, consistent with sheltered placement (surrounded by trees/buildings that block wind-driven particulates). The Dec 2022 gap is a data outage on top of this known placement bias. **Decision:** Keep Złoty Róg data but flag it as a low-reliability station in `data/processed/station_metadata.csv` (`bias_flag = "sheltered_placement"`). Exclude from leave-one-station-out validation lead fold; retain as training data with documented caveat.
 - Some stations report PM10 but not PM2.5 - filter carefully
-- Coordinates for 2 stations don't match Google Maps - need to correct manually
+- ~~Coordinates for 2 stations don't match Google Maps - need to correct manually~~ → **RESOLVED** (see Martina's note below)
 
 **Martina's validation:**  
 Spot-checked 20 random days against WIOŚ portal screenshots. 100% match on values, timestamps off by 1 hour (timezone - AQICN uses UTC, WIOŚ uses local time CET/CEST).
+
+Validated all station coordinates against Google Maps. Found 2 stations with coordinates off by ~100m (likely manual entry error in AQICN database). Retrieved correct coordinates from WIOŚ portal. **Fix applied in preprocessing script** (`scripts/01_download_clean.py`). No further action needed.
 
 ---
 

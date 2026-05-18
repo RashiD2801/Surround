@@ -43,10 +43,10 @@
 
 *If any sub-question has NONE or LOW confidence, what's the plan?*
 
-- [ ] Find a new source — list candidates here:
-  - Traffic volume data (Krakow transport authority) - would improve Sub-Q 2 and 3 by deconfounding road density from actual vehicle counts. Not critical for MVP.
-  - Building heights (municipal cadastre or LiDAR) - would improve Sub-Q 2 by modeling street canyon effects. Low priority.
-  - Before/after intervention data (PM2.5 measurements around new parks opened 2019-2024) - would upgrade Sub-Q 4 from LOW to MEDIUM by enabling quasi-experimental design. Worth investigating if city has data.
+- [x] Find a new source — decision recorded for each candidate:
+  - **Traffic volume data** (Krakow transport authority) — **Defer.** Would improve Sub-Q 2/3 but not critical for MVP. Road density (OSM) is an acceptable proxy. Revisit if R² < 0.40 after first model run.
+  - **Building heights** (municipal cadastre or LiDAR) — **Defer.** Low priority; street canyon effect is a real gap but outside 100m-cell planning scale. Document as known limitation in model card.
+  - **Before/after intervention data** (PM2.5 around new parks opened 2019-2024) — **Investigate in Session 4.** This is the only candidate that could upgrade Sub-Q 4 from LOW to MEDIUM confidence. Action: Rashi to contact Krakow Municipal Planning Office (BPP) to ask if pre/post-park PM2.5 records exist. Deadline: before model training begins.
 
 - [x] Revise the brief — describe the change here, then commit it to
       `problem-brief-v2.md`:

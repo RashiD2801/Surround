@@ -103,10 +103,10 @@ Non technical professionist reads the model card and can correctly state 3 limit
 
 | Mafia | Role on this project |
 |---|---|
-| [Rim] | [] |
-| [Martina] | [] |
-| [Rashi] | [] |
-| [Bhavana] | [] |
+| [Rim] | [Data Scientist] |
+| [Martina] | [Data Scientist] |
+| [Rashi] | [Data Scientist] |
+| [Bhavana] | [Data Scientist] |
 
 > Roles are loose — they help you divide work, not lock you in. Everyone
 > reads everyone's code. Everyone defends every line.

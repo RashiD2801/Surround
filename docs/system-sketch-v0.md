@@ -7,6 +7,7 @@ flowchart LR
         B[Sentinel-2<br/>10m imagery]
         C[OpenStreetMap<br/>roads + buildings]
         D[ERA5-Land<br/>weather 9km]
+        UA[Copernicus Urban Atlas<br/>land cover 50m]
     end
     subgraph processing [Processing]
         E[Download & clean<br/>clip negatives, drop gaps]
@@ -25,6 +26,7 @@ flowchart LR
     A --> E
     B --> F
     C --> F
+    UA --> F
     D --> G
     E --> G
     F --> H
@@ -65,6 +67,12 @@ flowchart LR
   - Format / cadence: NetCDF via CDS API, monthly bulk downloads
   - Datasheet: (not required for secondary sources)
 
+- **Copernicus Urban Atlas**
+  - What it provides: Land cover classification (17 categories: residential, industrial, green urban areas, forests, water, etc.) at 50m minimum mapping unit across Krakow
+  - Which sub-question(s) it serves: Sub-Q 2 (what correlates — land cover type as contextual feature), Sub-Q 4 (intervention ranking — identifies where green space additions are feasible)
+  - Format / cadence: GeoPackage bulk download (static 2018 snapshot, ~6-year update cycle); supplement with 2024 Sentinel-2 NDVI to partially account for post-2018 changes
+  - Datasheet: `docs/datasheets/copernicus-urban-atlas.md`
+
 ### Processing 
 
 - **Download & clean**
@@ -73,9 +81,9 @@ flowchart LR
   - **Transformation:** Clip negative PM2.5 to 0, drop flatline periods, standardize timestamps to UTC, reproject to EPSG:32634
 
 - **Calculate features**
-  - **Input:** Sentinel-2 bands (B2, B4, B8, B11), OSM vectors
-  - **Output:** `data/processed/features_100m.tif` (7-band raster: NDVI, NDBI, NDWI, road_density_100m, road_density_500m, building_density, distance_to_major_road)
-  - **Transformation:** Band math for indices, vector → raster for OSM (km/km² for roads, % coverage for buildings)
+  - **Input:** Sentinel-2 bands (B2, B4, B8, B11), OSM vectors, Copernicus Urban Atlas GeoPackage
+  - **Output:** `data/processed/features_100m.tif` (9-band raster: NDVI, NDBI, NDWI, road_density_100m, road_density_500m, building_density, distance_to_major_road, land_cover_class, pct_green_500m)
+  - **Transformation:** Band math for indices, vector → raster for OSM (km/km² for roads, % coverage for buildings), Urban Atlas polygons rasterized to 100m grid (majority land cover class per cell, % green urban area within 500m radius)
 
 - **Aggregate temporal**
   - **Input:** AQICN hourly CSV, ERA5-Land hourly NC

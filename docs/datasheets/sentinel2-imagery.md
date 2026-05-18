@@ -319,18 +319,81 @@ High pollution → haze → lower NDVI
 Not because vegetation changed  
 But because atmosphere blocked the signal
 
-**Test we'll do:**
-1. Find days with high PM2.5 + clear sky (rare but exists)
-2. Find days with low PM2.5 + clear sky
-3. Compare NDVI at same location on both days
-4. If NDVI significantly different → we have a haze problem
+If this bias is large, the model would learn the wrong direction: it would see "low NDVI → high PM2.5" and interpret it as "less green space causes more pollution" — but the causation could be reversed (more pollution causes lower NDVI readings). This would make the intervention predictions meaningless.
 
-**If haze bias confirmed:**
-- Option A: Use only lowest-PM2.5 days (summer, good weather) - but then lose winter signal
-- Option B: Include boundary layer height (ERA5-Land) as control variable to partial out haze effect
-- Option C: Document it heavily in limitations and reduce confidence in predictions
+---
 
-**Status:** Test not done yet. Rim + Martina will run this in Session 3.
+### Haze Bias Test Protocol
+
+**Owner:** Rim + Martina  
+**Status:** NOT YET RUN — must be completed before model training begins
+
+**What you need:**
+- AQICN hourly PM2.5 for all Krakow stations, 2019–2024 (already downloaded to `data/raw/aqicn/`)
+- Sentinel-2 cloud-free image dates (already filtered, stored in `data/processed/sentinel2/monthly/`)
+- At least 5 stations with consistent readings and no flatline anomalies
+
+**Steps:**
+
+1. **Identify Sentinel-2 overpass dates** that had both (a) <10% cloud cover over Krakow and (b) AQICN PM2.5 readings within ±3 hours of the overpass (~10:30 AM UTC). Target: 30+ dates across seasons.
+
+2. **Split dates into two groups:**
+   - High-pollution days: PM2.5 ≥ 35 µg/m³ at ≥3 stations simultaneously (city-wide pollution episode)
+   - Clean days: PM2.5 ≤ 15 µg/m³ at ≥3 stations simultaneously (WHO guideline or below)
+
+3. **Extract NDVI at each monitoring station location** (±50m buffer) for each date in both groups.
+
+4. **Run paired comparison:** For each station, compare mean NDVI on high-pollution days vs clean days.
+   - Use a Wilcoxon signed-rank test (non-parametric, safer for small samples)
+   - Compute effect size (Cohen's d or rank-biserial correlation)
+
+5. **Check spatial pattern:** If haze is the cause, bias should be spatially uniform (city-wide suppression). If NDVI difference varies by station type (traffic vs park), it's more likely real vegetation signal, not haze.
+
+**Pass/fail criteria:**
+
+| Result | Interpretation | Action |
+|---|---|---|
+| Mean NDVI difference < 0.05 between groups, p > 0.05 | Haze bias negligible | Proceed with NDVI as-is. Document test result. |
+| Mean NDVI difference 0.05–0.10, p < 0.05, spatially uniform | Moderate bias present | Use ERA5-Land boundary layer height as control variable in model (Option B). Re-run test after controlling. |
+| Mean NDVI difference > 0.10, p < 0.01, spatially uniform | Severe bias | Only use cloud-free images from low-PM2.5 days (Option A). Accept loss of winter signal. Flag prominently in model card. |
+| NDVI difference varies by station type (traffic vs park) | Not haze — real signal | Proceed. The NDVI variation reflects actual land cover differences, not atmospheric contamination. |
+
+**Code skeleton:**
+
+```python
+import pandas as pd
+import numpy as np
+from scipy.stats import wilcoxon
+import rasterio
+
+# Load AQICN monthly (already cleaned)
+aqicn = pd.read_csv("data/processed/aqicn_monthly.csv")
+
+# Load Sentinel-2 image dates
+s2_dates = pd.read_csv("data/processed/sentinel2/image_dates.csv")  # date, cloud_pct
+
+# Identify overpass dates with valid AQICN readings within 3h
+# ... (match on date, filter cloud_pct < 10)
+
+# Split into high vs clean pollution days
+high_pm = aqicn[aqicn["pm25_mean"] >= 35]
+clean_pm = aqicn[aqicn["pm25_mean"] <= 15]
+
+# Extract NDVI at each station location for matched dates
+# ... (rasterio sample at station coordinates per image)
+
+# Run Wilcoxon test per station, compute mean difference
+# ...
+```
+
+**Record result here when complete:**
+
+- Date run: ___
+- Run by: ___
+- Mean NDVI difference (high vs clean days): ___
+- p-value: ___
+- Verdict: Pass / Moderate bias / Severe bias / Real signal
+- Action taken: ___
 
 ---
 
