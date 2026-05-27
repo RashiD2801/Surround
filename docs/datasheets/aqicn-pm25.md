@@ -19,7 +19,7 @@ AQICN aggregates air quality measurements from official government monitoring st
 ## Where It Comes From
 
 **Data flow:**
-1. Physical sensors at ~10-12 stations across Krakow measure PM2.5 every hour
+1. Physical sensors at 8 stations across Krakow (used in this project) measure PM2.5 every hour
 2. WIOŚ Krakow collects and validates the data
 3. WIOŚ reports to GIOŚ (national environmental agency)
 4. GIOŚ shares with European Environment Agency
@@ -43,13 +43,15 @@ PM2.5: 42.3 µg/m³
 AQI: 118 (Unhealthy for sensitive groups)
 ```
 
-**Krakow stations** (approximately 10-12, exact number varies as some go offline):
-- Aleja Krasińskiego (city center, traffic)
-- ul. Dietla (downtown)
-- Kurdwanów (residential south)
-- Nowa Huta (industrial east)
-- Złoty Róg (west)
-- Several others
+**Krakow stations used in this project (8 stations):**
+- Nowa Huta (industrial east) — `nowa_huta`
+- Kurdwanów (residential south) — `kurdwanow`
+- Złoty Róg (west) — `zloty_rog`
+- Ul. Telimeny (south) — `telimeny`
+- Os. Wadów (west) — `os_wadow`
+- Os. Piastów (west) — `os_piastow`
+- Ul. Dietla (downtown) — `ul_dietla`
+- Aleja Krasińskiego (city center, traffic) — `aleja_krasinskiego`
 
 **Time range:** Historical data back to ~2015, actively updated hourly
 
@@ -67,8 +69,8 @@ AQI: 118 (Unhealthy for sensitive groups)
 ### Gaps we found:
 
 **Spatial gaps:**
-- Only ~10 stations for 327 km² of Krakow
-- That's roughly 1 station per 30 km²
+- Only 8 stations for 327 km² of Krakow (used in this project)
+- That's roughly 1 station per 40 km²
 - Suburbs barely covered (most stations downtown)
 - No stations in major parks (Planty, Błonia, Wolski Forest)
 
@@ -179,7 +181,7 @@ url = f"https://api.waqi.info/feed/@{station_id}/?token=YOUR_TOKEN"
 **What this dataset CAN'T tell us:**
 
 1. **Pollution levels between stations**  
-   We have 10 points. Krakow is 327 km². We'll interpolate, but it's educated guessing in the gaps.
+   We have 8 points. Krakow is 327 km². We'll interpolate, but it's educated guessing in the gaps.
 
 2. **Why pollution is high**  
    Sensors measure total PM2.5. They don't say "30% from traffic, 40% from heating, 30% from neighboring towns."
@@ -222,7 +224,7 @@ See `data-source-inventory.md` for full list.
 ## Team Notes
 
 **Rim's notes:**  
-Downloaded 2019-2024 for 10 stations successfully. Total ~400k rows (after dropping invalids). Stored in `data/raw/aqicn/`.
+Downloaded 2019-2024 for 8 stations as individual CSV files (downloaded from AQICN station pages). Cleaned and combined by `session 3/scripts/clean_multistation.py`. Output: `data/processed/krakow_multistation_CLEANED.csv`.
 
 **Issues found:**
 - Station "Złoty Róg" Dec 2022 gap — **partially resolved:** Rashi's anomaly scan confirmed Złoty Róg reads 20-30% lower than neighbouring stations under identical weather conditions, consistent with sheltered placement (surrounded by trees/buildings that block wind-driven particulates). The Dec 2022 gap is a data outage on top of this known placement bias. **Decision:** Keep Złoty Róg data but flag it as a low-reliability station in `data/processed/station_metadata.csv` (`bias_flag = "sheltered_placement"`). Exclude from leave-one-station-out validation lead fold; retain as training data with documented caveat.
@@ -232,7 +234,7 @@ Downloaded 2019-2024 for 10 stations successfully. Total ~400k rows (after dropp
 **Martina's validation:**  
 Spot-checked 20 random days against WIOŚ portal screenshots. 100% match on values, timestamps off by 1 hour (timezone - AQICN uses UTC, WIOŚ uses local time CET/CEST).
 
-Validated all station coordinates against Google Maps. Found 2 stations with coordinates off by ~100m (likely manual entry error in AQICN database). Retrieved correct coordinates from WIOŚ portal. **Fix applied in preprocessing script** (`scripts/01_download_clean.py`). No further action needed.
+Validated all station coordinates against Google Maps. Found 2 stations with coordinates off by ~100m (likely manual entry error in AQICN database). Retrieved correct coordinates from WIOŚ portal. **Fix applied in station registry** inside `session 3/scripts/clean_multistation.py` (the `STATIONS` dict). No further action needed.
 
 ---
 
@@ -243,7 +245,7 @@ Validated all station coordinates against Google Maps. Found 2 stations with coo
 
 It's official government data accessed via a better interface. The spatial gaps are real (only 10 stations) but we knew that going in. We'll document uncertainty in areas far from stations.
 
-The main risk is that we're extrapolating from 10 points to 32,700 grid cells (100m resolution). That's aggressive. But if we're transparent about uncertainty and use cross-validation to quantify errors, it's defensible.
+The main risk is that we're extrapolating from 8 points to 32,700 grid cells (100m resolution). That's aggressive. But if we're transparent about uncertainty and use cross-validation to quantify errors, it's defensible.
 
 **Confidence level: B+**  
 Good enough to build the tool, but need to be very clear about limitations in the model card.

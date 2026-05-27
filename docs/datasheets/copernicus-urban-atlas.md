@@ -116,28 +116,28 @@ Location: ul. Floriańska, Old Town
 
 **Download (bulk):**
 ```
-URL: https://land.copernicus.eu/local/urban-atlas/urban-atlas-2018
-Format: GeoPackage (.gpkg), EPSG:3035
-File for Poland: PL_UA2018.gpkg (~180 MB)
-Krakow layer: extract by bounding box [19.79, 49.97, 20.22, 50.13]
+URL: https://land.copernicus.eu/local/urban-atlas
+Format: FlatGeobuf (.fgb) — used in session 3 (GeoPackage .gpkg also available)
+File used: CLMS_UA_LCU_S2021_V025ha_PL003L2_KRAKOW_03035_V01_R00_20241025.fgb (~150 MB)
 ```
 
-No API required — single bulk download, no login needed (free Copernicus account for EEA portal).
+No API required — single bulk download. File is too large to commit to GitHub (excluded via `.gitignore`).
 
-**Processing steps:**
+**How it was processed in session 3** (`session 3/scripts/spatial_features_pipeline.py`):
 ```python
 import geopandas as gpd
 
-ua = gpd.read_file("PL_UA2018.gpkg", layer="Urban_Atlas_2018")
-krakow = ua.cx[19.79:20.22, 49.97:50.13]  # Bounding box clip
-krakow = krakow.to_crs("EPSG:32634")       # Reproject to match other layers
+# Load only a bounding box around each station (fast — no need to load all Krakow)
+gdf = gpd.read_file(fgb_path, bbox=(sx - max_r_m, sy - max_r_m, sx + max_r_m, sy + max_r_m))
+gdf = gdf.to_crs("EPSG:3035")
 
-# Rasterize to 100m grid
-# -> land_cover_class: majority class per cell
-# -> pct_green_500m: % area with class 14100 or 31000 within 500m radius
+# Compute land use % at 4 buffer radii: 0.5, 1.0, 2.0, 5.0 km per station
+# Output features: luse_r005_green_pct, luse_r010_urban_pct, luse_r010_seal_density, ...
 ```
 
-**Data size:** ~180 MB raw GeoPackage; Krakow subset ~8 MB
+Output: `data/output/krakow_spatial_features.csv` — 8 rows × 53+ columns (one row per station).
+
+**Data size:** ~150 MB raw FlatGeobuf; not committed to repo.
 
 ---
 
@@ -173,17 +173,20 @@ krakow = krakow.to_crs("EPSG:32634")       # Reproject to match other layers
 
 ## Team Notes
 
-**Status:** Downloaded, not yet processed into 100m raster grid.
+**Status (after Session 3):** Downloaded and processed at station level. Per-station land use features computed and merged into the final ML dataset.
 
-**To do before model training:**
-- [ ] Download PL_UA2018.gpkg from Copernicus portal
-- [ ] Clip to Krakow bounding box
-- [ ] Reproject to EPSG:32634
-- [ ] Rasterize: land_cover_class (majority per 100m cell) + pct_green_500m (zonal stats)
-- [ ] Spot-check against Google Maps for 10 known locations (Planty Park, Old Town, Nowa Huta)
-- [ ] Add two output bands to `features_100m.tif`
+**Completed in Session 3:**
+- [x] Downloaded `CLMS_UA_LCU_S2021_V025ha_PL003L2_KRAKOW_03035_V01_R00_20241025.fgb` from Copernicus portal (FlatGeobuf format)
+- [x] Processed per station: bounding-box clip at each buffer radius (0.5, 1.0, 2.0, 5.0 km), computed land use percentages in EPSG:3035
+- [x] Output: `data/output/krakow_spatial_features.csv` (8 stations × 53 land use columns)
+- [x] Merged with cleaned air quality data → `data/output/krakow_final_dataset.csv`
 
-**Known issue:** 2018 reference year is stale for the 2019-2024 model training period. Document as limitation in model card; do not attempt to "update" UA manually — use Sentinel-2 NDVI for temporal greenness signal instead.
+**Still to do (future sessions):**
+- [ ] Rasterize to 100m grid (land_cover_class majority per cell + pct_green_500m zonal stats) — needed for city-wide prediction map
+- [ ] Spot-check against Google Maps for known locations (Planty Park, Old Town, Nowa Huta)
+- [ ] Integrate into `features_100m.tif` alongside Sentinel-2 NDVI (when Sentinel-2 step is implemented)
+
+**Known issue:** 2018 reference year is stale for the 2019-2024 model training period. Document as limitation in model card; do not attempt to "update" UA manually — use Sentinel-2 NDVI for temporal greenness signal instead (planned for future session).
 
 ---
 

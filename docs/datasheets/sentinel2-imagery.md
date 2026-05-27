@@ -292,22 +292,20 @@ Can't see underground parking, interior courtyards with overhangs, etc.
 
 ## Team Notes
 
-**Martina's workflow:**
-1. Downloaded all 2019-2024 images for tile 34UFA with <30% cloud cover
-2. Calculated NDVI, NDBI, NDWI for each image
-3. Created monthly composites (median of cloud-free pixels)
-4. Result: 72 monthly images (6 years × 12 months)
-5. Actually usable after cloud filtering: ~55 monthly composites
+**Status: NOT YET STARTED — planned for a future session.**
 
-**Storage:**
-- Raw GEE exports: 2.8 GB
-- Stored in `data/processed/sentinel2/monthly/`
-- Individual files: `krakow_ndvi_2024-01.tif`, etc.
+Sentinel-2 NDVI was not implemented in Session 3. Session 3 focused on:
+1. Cleaning the 8-station AQICN air quality time series (`clean_multistation.py`)
+2. Extracting spatial features from **Copernicus Urban Atlas** (land use categories) and **OSM** (building/road density) at each station (`spatial_features_pipeline.py`)
 
-**Issues found:**
-- December 2022: Entirely cloudy, no usable images. Used Nov+Jan average as proxy.
-- Shadow masking imperfect in dense downtown (Old Town). Manually inspected, acceptable.
-- Some edge pixels outside Krakow boundary - will crop to city limits.
+Urban Atlas land cover categories are currently used as the greenness proxy. Sentinel-2 NDVI will be added in a future session to complement Urban Atlas with an actual measured vegetation signal.
+
+**To do when starting Sentinel-2 step:**
+- [ ] Download monthly cloud-free composites for Krakow (tile 34UFA) 2019-2024 via GEE
+- [ ] Calculate NDVI, NDBI, NDWI per image
+- [ ] Run haze bias test (see protocol below) before using NDVI in model
+- [ ] Add NDVI to `spatial_features_pipeline.py` or create separate GEE script
+- [ ] Store in `data/processed/sentinel2/monthly/`
 
 ---
 

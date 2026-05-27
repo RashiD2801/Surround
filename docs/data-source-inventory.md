@@ -65,6 +65,8 @@ AQICN aggregates hourly PM2.5 measurements from ~10-12 official monitoring stati
 
 **Adopt.** Best available PM2.5 data for Krakow. Sparse spatial coverage is a known limitation but acceptable for 100m grid modeling with documented uncertainty in station-sparse areas.
 
+> **Session 3 status: ✅ Implemented.** 8 station CSVs downloaded and cleaned via `session 3/scripts/clean_multistation.py`. Output: `data/processed/krakow_multistation_CLEANED.csv`.
+
 ---
 
 ## 2. Sentinel-2 Multispectral Imagery (Google Earth Engine)
@@ -93,6 +95,8 @@ Sentinel-2 provides 10-meter resolution multispectral satellite imagery of Krako
 ### Verdict
 
 **Adopt.** Essential for urban form features (greenness, buildings). Winter cloud gaps are annoying but manageable via seasonal composites. Atmospheric bias (haze affecting NDVI) is a known risk we'll test for.
+
+> **Session 3 status: ⏳ Not yet implemented.** Sentinel-2 NDVI planned for a future session. Urban Atlas land use categories are used as the current greenness proxy.
 
 ---
 
@@ -123,6 +127,8 @@ OpenStreetMap provides vector geometries (polygons, lines) for all roads and bui
 
 **Adopt.** Critical for urban form features. Crowdsourced nature is a limitation but Krakow mapping quality is high (verified via spot checks). Missing building heights documented as known gap.
 
+> **Session 3 status: ✅ Implemented.** Building footprint coverage and road density fetched via `osmnx` for all 8 stations at 0.5, 1.0, and 2.0 km radii. Output merged into `data/output/krakow_spatial_features.csv`.
+
 ---
 
 ## 4. ERA5-Land Climate Reanalysis
@@ -152,6 +158,8 @@ ERA5-Land provides hourly weather variables (temperature, wind speed, boundary l
 
 **Adopt (with restriction).** Only use for TEMPORAL deconfounding (monthly averages, high-inversion flags), NOT as spatial features in the model. 9km is way too coarse for 100m grid predictions but acceptable for time controls.
 
+> **Session 3 status: ⏳ Not yet implemented.** ERA5-Land weather controls planned for a future session before model training.
+
 ---
 
 ## 5. Copernicus Urban Atlas (Land Cover Classification)
@@ -180,6 +188,8 @@ Urban Atlas classifies land cover into 17 categories (residential, industrial, g
 ### Verdict
 
 **Adopt.** Useful for land cover context despite 2018 lag. We can update green space changes with 2024 Sentinel-2 NDVI to partially address staleness.
+
+> **Session 3 status: ✅ Implemented.** Downloaded as FlatGeobuf (`CLMS_UA_LCU_S2021_V025ha_PL003L2_KRAKOW_03035_V01_R00_20241025.fgb`). Land use percentages computed at 4 buffer radii (0.5–5 km) for all 8 stations. Output: `data/output/krakow_spatial_features.csv`. Rasterization to 100m grid is a future step.
 
 ---
 

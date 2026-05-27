@@ -8,7 +8,7 @@
 ## Dataset under audit
 
 - **Dataset:** AQICN PM2.5 measurements, Krakow stations, 2019-2024
-- **Profiling notebook:** `notebooks/01-data-profiling.ipynb`
+- **Cleaning notebook / script:** `session 3/02-data-cleaning.ipynb` · `session 3/scripts/clean_multistation.py`
 - **Audit performed by:** Rim, Martina, Rashi, Bhavana
 - **Date:** 04-05-2026
 
@@ -22,7 +22,7 @@ Specific periods where data is missing or unreliable:
 
 - **COVID lockdown (March 15 - May 31, 2020):** Data exists but pollution levels ~30% lower than normal due to reduced traffic. Not representative of typical conditions we're trying to model.
 
-- **Winter 2020-2021 (December 2020 - February 2021):** Three stations (Aleja Krasińskiego, Kurdwanów, Nowa Huta) had intermittent outages. Completeness dropped to ~55% during this period (vs normal 70-75%).
+- **Winter 2020-2021 (December 2020 - February 2021):** Some stations (Aleja Krasińskiego, Kurdwanów, Nowa Huta) had intermittent outages. Completeness dropped to ~55% during this period (vs normal 70-75%).
 
 - **Random hourly gaps throughout:** Missing ~25-30% of expected hourly measurements. Most gaps are 1-6 hour blocks (sensor calibration, power cuts). Longer gaps (>24 hours) rare but happen occasionally.
 
@@ -40,6 +40,8 @@ Locations with missing or sparse coverage:
 
 **Overall:** ~40% of Krakow's 327 km² is >2 km from nearest station. These areas have no direct validation data.
 
+> **Session 3 note:** 8 stations were successfully loaded and cleaned (Nowa Huta, Kurdwanów, Złoty Róg, Ul. Telimeny, Os. Wadów, Os. Piastów, Ul. Dietla, Aleja Krasińskiego). All 8 are in the cleaned dataset.
+
 ### Field-level gaps
 
 Which variables are incomplete or unreliable:
@@ -48,7 +50,7 @@ Which variables are incomplete or unreliable:
 |---|---|---|---|
 | PM2.5 concentration | 25% | Higher in winter (30% missing) vs summer (20% missing) | Seasonal bias - underweights winter heating pollution |
 | PM10 | 18% | Correlates with PM2.5 gaps (same sensors) | Not critical (we're using PM2.5 as primary) |
-| Temperature | 60% | Only 4 of 10 stations report weather | Have to use ERA5-Land instead |
+| Temperature | 60% | Only some of the 8 stations report weather | Have to use ERA5-Land instead |
 | Humidity | 65% | Same as temperature | Use ERA5-Land |
 | Station coordinates | 0% | Complete but 2 stations have ±100m error | Must manually correct |
 | Station type metadata | Not in API | Have to scrape from WIOŚ portal separately | Annoying but doable |
@@ -79,8 +81,8 @@ Which biases apply to this dataset:
   **YES - significant.** Stations placed for regulatory compliance (EU Air Quality Directive), not for scientific representativeness.  
   
   Bias toward:
-  - Traffic hotspots (5 of 10 stations are "traffic" type, <10m from major roads)
-  - City center (7 of 10 stations within 5km of Old Town Square)
+  - Traffic hotspots (several of the 8 stations are "traffic" type, <10m from major roads)
+  - City center (most of the 8 stations within 5km of Old Town Square)
   - Areas with power + internet infrastructure
   
   Undersampled:
@@ -141,7 +143,7 @@ Can this dataset answer our specific questions?
 
 - **Sub-question 5:** How uncertain are our predictions?
   - **Answer:** **Yes**
-  - **Why:** With 10 stations, we can do leave-one-station-out cross-validation (train on 9, test on 1, repeat 10 times). This will give realistic error estimates for "predicting PM2.5 at a new location." Can also do uncertainty quantification via bootstrap or quantile regression. 10 stations is borderline (would prefer 15-20) but usable.
+  - **Why:** With 8 stations, we can do leave-one-station-out cross-validation (train on 7, test on 1, repeat 8 times). This will give realistic error estimates for "predicting PM2.5 at a new location." Can also do uncertainty quantification via bootstrap or quantile regression. 8 stations is lean (would prefer 15-20) but usable.
 
 ---
 
@@ -187,7 +189,7 @@ Does this audit force changes to our problem brief?
 1. **Added uncertainty caveat to Success Criterion:**
    - **Original:** "Predictions at 10-meter resolution"
    - **Revised:** "Predictions at 10-meter resolution aggregated to 100m grid. Predictions >2km from stations documented with ±30% uncertainty."
-   - **Why:** Only 10 stations can't validate 100m resolution everywhere. Have to be honest about spatial gaps.
+   - **Why:** Only 8 stations can't validate 100m resolution everywhere. Have to be honest about spatial gaps.
 
 2. **Clarified correlation vs causation:**
    - **Original (implied):** "Effect sizes for interventions"

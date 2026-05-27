@@ -1,3 +1,19 @@
+## Session status
+
+| Component | Status after Session 3 |
+|---|---|
+| AQICN data cleaning | ✅ Done — `data/processed/krakow_multistation_CLEANED.csv` (8 stations) |
+| Urban Atlas land use features | ✅ Done — per-station features at 4 radii, in `data/output/krakow_spatial_features.csv` |
+| OSM building + road features | ✅ Done — merged into `data/output/krakow_spatial_features.csv` |
+| Merge spatial + temporal data | ✅ Done — `data/output/krakow_final_dataset.csv` |
+| Sentinel-2 NDVI/NDBI/NDWI | ⏳ Planned — next session |
+| ERA5-Land weather controls | ⏳ Planned — before model training |
+| Rasterize to 100m city-wide grid | ⏳ Planned — before city-wide prediction |
+| Model training + validation | ⏳ Planned |
+| Dashboard | ⏳ Planned |
+
+---
+
 ## The diagram
 
 ```mermaid
@@ -44,7 +60,7 @@ flowchart LR
 
 
 - **AQICN PM2.5**
-  - What it provides: Hourly PM2.5 measurements (µg/m³) from ~10 Krakow stations, 2019-2024
+  - What it provides: Hourly PM2.5 measurements (µg/m³) from 8 Krakow stations, 2019-2024
   - Which sub-question(s) it serves: Sub-Q 1 (where worst), Sub-Q 3 (effect sizes), Sub-Q 5 (uncertainty)
   - Format / cadence: JSON via REST API, hourly updates, historical bulk download via date loop
   - Datasheet: `docs/datasheets/aqicn-pm25.md`
@@ -81,19 +97,23 @@ flowchart LR
   - **Transformation:** Clip negative PM2.5 to 0, drop flatline periods, standardize timestamps to UTC, reproject to EPSG:32634
 
 - **Calculate features**
-  - **Input:** Sentinel-2 bands (B2, B4, B8, B11), OSM vectors, Copernicus Urban Atlas GeoPackage
-  - **Output:** `data/processed/features_100m.tif` (9-band raster: NDVI, NDBI, NDWI, road_density_100m, road_density_500m, building_density, distance_to_major_road, land_cover_class, pct_green_500m)
-  - **Transformation:** Band math for indices, vector → raster for OSM (km/km² for roads, % coverage for buildings), Urban Atlas polygons rasterized to 100m grid (majority land cover class per cell, % green urban area within 500m radius)
+  - **Input (Session 3 — done):** Copernicus Urban Atlas FlatGeobuf, OSM via `osmnx`
+  - **Input (future):** Sentinel-2 bands (B2, B4, B8, B11) — NDVI/NDBI/NDWI not yet computed
+  - **Session 3 output:** `data/output/krakow_spatial_features.csv` (8 stations × land use % + OSM building/road features at 0.5–5 km radii)
+  - **Future output:** `data/processed/features_100m.tif` (raster: NDVI, NDBI, road_density, building_density, land_cover_class, pct_green — city-wide 100m grid)
+  - **Transformation (done):** Urban Atlas polygons clipped per station at buffer radii, OSM building footprint coverage + road density per station. **Rasterization to 100m grid and Sentinel-2 NDVI pending.**
 
 - **Aggregate temporal**
-  - **Input:** AQICN hourly CSV, ERA5-Land hourly NC
-  - **Output:** `data/processed/aqicn_monthly.csv`, `data/processed/era5_monthly.csv`
-  - **Transformation:** Group by station + year-month, compute mean (drop if <75% data present that month)
+  - **Input (Session 3 — done):** 8 AQICN station CSVs (daily resolution)
+  - **Input (future):** ERA5-Land hourly NC (weather controls — not yet fetched)
+  - **Session 3 output:** `data/processed/krakow_multistation_CLEANED.csv` (daily rows per station, 2019-2024, COVID excluded, with lag features and seasonal dummies)
+  - **Future output:** `data/processed/era5_monthly.csv` (weather controls to add before model training)
+  - **Transformation (done):** Date filtering 2019-2024, COVID exclusion (Mar–May 2020), per-station median imputation, cyclical time encoding, lag features (1/3/7-day), 7-day rolling mean
 
 - **Spatial join**
-  - **Input:** AQICN monthly CSV (10 stations × 60 months), features_100m.tif
-  - **Output:** `data/processed/training_data.csv` (~600 rows: station_id, year_month, pm25, ndvi, road_density, ...)
-  - **Transformation:** For each station location, extract raster values at that coordinate
+  - **Input (Session 3 — done):** `krakow_multistation_CLEANED.csv` (8 stations, time series) + `krakow_spatial_features.csv` (8 station rows, static features)
+  - **Session 3 output:** `data/output/krakow_final_dataset.csv` (merged on `station_id` — temporal rows with static spatial features broadcast per station)
+  - **Future output:** Will expand once `features_100m.tif` is produced (raster extraction for city-wide prediction)
 
 - **Train model**
   - **Input:** training_data.csv
@@ -101,9 +121,9 @@ flowchart LR
   - **Transformation:** X = [ndvi, ndbi, road_density_500m, building_density, temp, blh], y = pm25, fit RandomForestRegressor
 
 - **Validate**
-  - **Input:** training_data.csv, rf_model.pkl
+  - **Input:** `krakow_final_dataset.csv`, trained model
   - **Output:** `results/cv_scores.json` (R², MAE, RMSE per fold and overall)
-  - **Transformation:** Leave-one-station-out CV (10 folds), record metrics, check if R² ≥ 0.40
+  - **Transformation:** Leave-one-station-out CV (8 folds — one per station), record metrics, check if R² ≥ 0.40
 
 - **Predict grid**
   - **Input:** rf_model.pkl, features_100m.tif (32,700 cells)
