@@ -9,12 +9,12 @@ Based on:
 - data-cleaning-log.md
 - problem-brief-v2.md
 
-Run from project root:
-    python clean_krakow_dataset.py
+Run from anywhere:
+    python scripts/clean_krakow_dataset.py
 
 Output:
-    krakow_ml_dataset_CLEANED.csv    (ready for model training)
-    cleaning_report.txt               (summary of what was done)
+    data/processed/krakow_ml_dataset_CLEANED.csv    (ready for model training)
+    reports/cleaning_report.txt                      (summary of what was done)
 """
 
 import pandas as pd
@@ -26,9 +26,11 @@ from datetime import datetime
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════
 
-INPUT_FILE = "krakow_ml_dataset.csv"
-OUTPUT_FILE = "krakow_ml_dataset_CLEANED.csv"
-REPORT_FILE = "cleaning_report.txt"
+HERE = Path(__file__).parent.resolve()
+
+INPUT_FILE = str(HERE.parent / "data" / "processed" / "krakow_ml_dataset.csv")
+OUTPUT_FILE = str(HERE.parent / "data" / "processed" / "krakow_ml_dataset_CLEANED.csv")
+REPORT_FILE = str(HERE.parent / "reports" / "cleaning_report.txt")
 
 # Date range for project (from problem-brief-v2.md)
 PROJECT_START_YEAR = 2019
