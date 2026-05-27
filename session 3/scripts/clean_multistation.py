@@ -27,13 +27,19 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 
+# Resolve paths relative to this script's location
+HERE        = Path(__file__).parent.resolve()
+RAW_DIR     = HERE.parent / "data" / "raw"
+PROCESSED_DIR = HERE.parent / "data" / "processed"
+REPORTS_DIR = HERE.parent / "reports"
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 
 # Output files
-OUTPUT_FILE = "krakow_multistation_CLEANED.csv"
-REPORT_FILE = "multistation_cleaning_report.txt"
+OUTPUT_FILE = str(PROCESSED_DIR / "krakow_multistation_CLEANED.csv")
+REPORT_FILE = str(REPORTS_DIR / "multistation_cleaning_report.txt")
 
 # Project date range (from problem-brief-v2.md)
 PROJECT_START_YEAR = 2019
@@ -52,14 +58,17 @@ EXTREME_THRESHOLD = 200  # ug/m3
 # Station registry: filename keyword -> (station_id, display_name, lat, lon)
 # Coordinates for each monitoring station in Krakow
 STATIONS = {
-    "nowa-huta":         ("nowa_huta",        "Nowa Huta",         50.0683,  20.0530),
-    "kurdwan":           ("kurdwanow",         "Kurdwanow",         50.0076,  19.9742),
-    "zloty":             ("zloty_rog",         "Zloty Rog",         50.0647,  19.9450),
-    "telimeny":          ("telimeny",          "Ul. Telimeny",      50.0094,  19.9617),
-    "wadow":             ("os_wadow",          "Os. Wadow",         50.0783,  19.8950),
-    "piastow":           ("os_piastow",        "Os. Piastow",       50.0519,  19.8850),
-    "dietla":            ("ul_dietla",         "Ul. Dietla",        50.0566,  19.9442),
-    "aleja":             ("aleja_krasinskiego","Aleja Krasinskiego", 50.0573,  19.9100),
+    "nowa-huta":         ("nowa_huta",         "Nowa Huta",          50.0683,  20.0530),
+    "kurdwan":           ("kurdwanow",          "Kurdwanow",          50.0076,  19.9742),
+    "zloty":             ("zloty_rog",          "Zloty Rog",          50.0647,  19.9450),
+    "złoty":            ("zloty_rog",          "Zloty Rog",          50.0647,  19.9450),
+    "telimeny":          ("telimeny",           "Ul. Telimeny",       50.0094,  19.9617),
+    "wadow":             ("os_wadow",           "Os. Wadow",          50.0783,  19.8950),
+    "wadów":            ("os_wadow",           "Os. Wadow",          50.0783,  19.8950),
+    "piastow":           ("os_piastow",         "Os. Piastow",        50.0519,  19.8850),
+    "piastów":           ("os_piastow",         "Os. Piastow",        50.0519,  19.8850),
+    "dietla":            ("ul_dietla",          "Ul. Dietla",         50.0566,  19.9442),
+    "aleja":             ("aleja_krasinskiego", "Aleja Krasinskiego",  50.0573,  19.9100),
 }
 
 # =============================================================================
@@ -117,11 +126,11 @@ def clean_multistation():
     # -------------------------------------------------------------------------
     # 0. DISCOVER FILES
     # -------------------------------------------------------------------------
-    csv_files = sorted(Path(".").glob("*air-quality*.csv"))
+    csv_files = sorted(RAW_DIR.glob("*air-quality*.csv"))
 
     # Also catch any variant filenames (e.g. with underscores)
     if not csv_files:
-        csv_files = sorted(Path(".").glob("*air_quality*.csv"))
+        csv_files = sorted(RAW_DIR.glob("*air_quality*.csv"))
 
     print(section("STEP 0: FILE DISCOVERY"))
     print(f"  Found {len(csv_files)} air-quality CSV file(s) in current folder:")
