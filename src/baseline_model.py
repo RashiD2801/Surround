@@ -47,25 +47,25 @@ SLUG       = "krakow-pm25"
 RANDOM_SEED = 42
 TARGET      = "pm25"
 
-# Land use + temporal features — all available at unmeasured grid cells.
-# r005 = 500m radius, r010 = 1km radius.
+# Land use (500m radius) + seasonal control — all available at unmeasured grid cells.
+# r005 = 500m buffer from Urban Atlas. r010+ deferred to Session 5 validation.
+# month is the seasonal control: without it the model conflates winter heating
+# signal with urban form signal (see modelling-log.md decision #4).
 FEATURE_COLS = [
-    # Land use at 500m — most local signal
-    "luse_r005_urban_pct",
-    "luse_r005_green_pct",
+    "luse_r005_urban_continuous_pct",
+    "luse_r005_urban_discontinuous_pct",
+    "luse_r005_urban_isolated_pct",
     "luse_r005_urban_industrial_pct",
+    "luse_r005_urban_infrastructure_pct",
+    "luse_r005_urban_green_pct",
+    "luse_r005_agriculture_pct",
+    "luse_r005_forest_natural_pct",
+    "luse_r005_wetland_pct",
+    "luse_r005_water_pct",
     "luse_r005_seal_density",
-    # Land use at 1km — neighbourhood context
-    "luse_r010_urban_pct",
-    "luse_r010_green_pct",
-    "luse_r010_urban_industrial_pct",
-    "luse_r010_seal_density",
-    # Temporal — available everywhere in the city
+    "luse_r005_green_pct",
+    "luse_r005_urban_pct",
     "month",
-    "month_sin",
-    "month_cos",
-    "season_winter",
-    "is_weekend",
 ]
 
 N_TREES  = 300

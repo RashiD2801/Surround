@@ -37,7 +37,7 @@ import numpy as np
 import pandas as pd
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-CLEAN_PATH = Path("data/output/krakow_final_dataset.csv")
+CLEAN_PATH = Path("data/training/krakow_model_dataset_monthly.csv")
 OUT_DIR    = Path("data/processed/")
 SLUG       = "krakow-pm25"
 
@@ -55,7 +55,7 @@ VAL_STATIONS = frozenset({"kurdwanow"})
 # Train: remaining 5 stations.
 
 # Columns the split must preserve (sanity check against schema drift).
-REQUIRED_COLS = ["station_id", "pm25", "year", "month", "day_of_year",
+REQUIRED_COLS = ["station_id", "pm25", "year", "month",
                  "station_lat", "station_lon"]
 
 
