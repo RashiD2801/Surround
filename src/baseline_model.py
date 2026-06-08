@@ -66,6 +66,8 @@ FEATURE_COLS = [
     "luse_r005_green_pct",
     "luse_r005_urban_pct",
     "month",
+    "mean_temp_monthly",
+    "blh_monthly",
 ]
 
 N_TREES  = 300

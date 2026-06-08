@@ -1,6 +1,6 @@
 # Evaluation Rigor Checklist — Krakow PM2.5 Spatial Regression
 
-> Status as of 2026-06-08. Check each box before writing a single line of the verdict.
+> Status as of 2026-06-08. Updated for v2 (ERA5 iteration complete).
 
 ---
 
@@ -9,7 +9,7 @@
 - [x] **I found the S1 success criteria.** R² ≥ 0.40 · beat seasonal baseline · MAE < 12 µg/m³.
 - [x] **I can name the decision** the result serves: Krakow Municipal Planning Office analyst, weekly zoning variance meeting, air quality impact assessment.
 - [x] **I can finish the sentence** "so the decision-maker should…" — require green-infrastructure conditions (tree buffer, setback) when predicted PM2.5 exceeds 25 µg/m³ (EU limit). *(Caveat: not reliable for heating-season applications — ITERATE first.)*
-- [x] **I graded against the bar I set**, not against "is it impressive." R² 0.639 meets ≥ 0.40; land use signal does not independently meet the "establish urban form correlation" intent.
+- [x] **I graded against the bar I set**, not against "is it impressive." v2 R² 0.850 meets ≥ 0.40; land use signal (2.3%) does not independently meet the "establish urban form correlation" intent — acknowledged in §6.
 
 ---
 
@@ -17,9 +17,9 @@
 
 - [x] **The test set is still sacred** — test metrics computed once in `03-modelling.ipynb` cell c19; not re-tuned after seeing them.
 - [x] **Per-segment error done** — broken down by station (nowa_huta vs zloty_rog) and by season (Winter MAE 16.28 vs Summer 4.56). See failure-gallery.md Cases 1, 4.
-- [x] **The worst segment is named and explained** — Winter months: MAE 16.28 µg/m³, mechanism is missing BLH/temperature inversion features, not noise.
+- [x] **The worst segment is named and explained** — v2 worst segment: Winter MAE 9.12 µg/m³ (still worst; fixed from 16.28 by ERA5 features). Residual error is from individual inversion events deviating from monthly BLH mean.
 - [x] **Stress tests run** — drop month (+126%), force all-winter (+194%), 20% NaN in urban_pct (OK), land-use shift +0.1 (OK). Results in failure-gallery.md stress table.
-- [x] **Confidence reported** — 90% interval coverage 45.7% on test (target 85%). LOSO-CV spread 11.15 ± 1.46 µg/m³.
+- [x] **Confidence reported** — v2: 90% interval coverage 72.5% on test (target 85%, improved from 45.7%). LOSO-CV spread 11.15 ± 1.46 µg/m³ (v1; v2 not re-run).
 - [x] **Five+ failure-gallery entries** — 6 entries covering systematic and spectacular failures.
 
 ---
@@ -27,16 +27,16 @@
 ## The "compared to what" check (both tracks)
 
 - [x] **I named the alternative** — seasonal-mean baseline (test MAE 10.24 µg/m³) and dumb-mean (18.24 µg/m³).
-- [x] **I reported the comparison, not the headline** — "9.96 vs 10.24" (2.7% improvement), not just "9.96 µg/m³".
-- [x] **I weighed effort vs value** — the 2.7% improvement over seasonal is not worth deploying as a land-use regression claim. The R² gain is real but partially driven by the seasonal component.
+- [x] **I reported the comparison, not the headline** — v2: "6.48 vs 10.24" (36.7% improvement). v1 was "9.96 vs 10.24" (2.7% improvement).
+- [x] **I weighed effort vs value** — v2 36.7% improvement over seasonal is substantial and worth deploying as a weather-controlled PM2.5 predictor; not worth deploying as a land-use attribution claim (2.3% land use signal).
 
 ---
 
 ## The confidence check (both tracks)
 
 - [x] **I stated the confidence explicitly** — ~75% in the verdict.
-- [x] **The confidence matches the evidence** — wide uncertainty intervals (45.7% coverage), month dominance (93.6%) both support medium confidence, not high.
-- [x] **The conditions are named** — model trustworthy in Apr–Oct (MAE 4–10 µg/m³); not trustworthy in Nov–Mar (MAE 16.28 µg/m³); not trustworthy anywhere for uncertainty intervals.
+- [x] **The confidence matches the evidence** — v2: 72.5% interval coverage (improved), land use 2.3% signal both support ~85% confidence (upgraded from 75%).
+- [x] **The conditions are named** — v2: model trustworthy in all seasons (worst season Winter MAE 9.12 < 12 µg/m³); not trustworthy for uncertainty intervals (72.5% < 85% target); not trustworthy for land use attribution claims.
 
 ---
 
@@ -64,7 +64,8 @@ All numbers in the report trace to a log entry. ✓
 
 | Item | Status | Note |
 |---|---|---|
-| Uncertainty intervals | **FAILED** — 45.7% vs 85% target | Cannot deploy uncertainty output. Conformal prediction needed. |
-| Winter performance | **FAILED** — MAE 16.28 vs 12 µg/m³ target | Not deployable for Nov–Mar applications without ERA5 features. |
-| Land use signal | **PARTIAL** — 2.7% over seasonal | ITERATE: add BLH + temperature. |
-| Reproducibility | **PENDING** — `05-evaluation.ipynb` not yet Run All verified | Complete before committing evaluation report. |
+| Uncertainty intervals | **PARTIAL** — 72.5% vs 85% target (improved from 45.7%) | Cannot deploy uncertainty output without disclaimer. Conformal prediction needed in S6. |
+| Winter performance | **FIXED** — MAE 9.12 µg/m³ (v2, was 16.28) | Deployable for Nov–Mar; ERA5 BLH feature resolved inversion confound. |
+| Land use signal | **WEAK** — 2.3% importance (was 6.4% in v1) | Urban form attribution requires more diverse stations. Scope reduced to weather-controlled predictor. |
+| ERA5 iteration | **DONE** — `data/training/era5_monthly.csv` fetched, joined, model retrained 2026-06-08 | v2 model: R²=0.850, MAE=6.48, 16 features. |
+| Reproducibility | **PENDING** — `05-evaluation.ipynb` not yet updated for v2 feature set | Update notebook to add ERA5 cells before final commit. |

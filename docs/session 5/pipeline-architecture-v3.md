@@ -9,8 +9,8 @@
 ## What changed since v2
 
 Session 4 (v2) had the model boxes implemented and an aspirational evaluation column.
-Session 5 (v3): the **evaluation** boxes are implemented — they have file paths, inputs, and contracts.
-The **decide** box has a real verdict (ITERATE). The **future** boxes remain planned.
+Session 5 (v3): the **evaluation** boxes are implemented and the **ERA5 iteration** is complete.
+The **decide** box has a real verdict (CONDITIONAL DEPLOY). ERA5 retraining moved from "planned" to implemented.
 
 ---
 
@@ -21,49 +21,49 @@ flowchart LR
     subgraph ingest [Phase 2–3 · Data]
         I1["raw CSVs<br/>data/raw/  (8 stations)"]
         I2["Urban Atlas land use<br/>data/output/krakow_spatial_features.csv"]
-        I3["monthly aggregation<br/>data/training/krakow_model_dataset_monthly.csv<br/>471 rows · 19 cols"]
+        I4["ERA5-Land (Open-Meteo)<br/>data/training/era5_monthly.csv<br/>504 rows · mean_temp + BLH"]
+        I3["monthly dataset v2<br/>data/training/krakow_model_dataset_monthly.csv<br/>471 rows · 21 cols (incl. ERA5)"]
     end
 
     subgraph build [Phase 4 · Build]
         B1["LOSO group split<br/>src/split_data.py<br/>train 265 · val 68 · test 138 rows"]
-        B2["Random Forest Pipeline<br/>src/baseline_model.py<br/>models/baseline.joblib  1.05 MB"]
+        B2["Random Forest Pipeline v2<br/>src/baseline_model.py<br/>models/baseline.joblib  1.19 MB · 16 features"]
     end
 
     subgraph evaluate [Phase 5 · Evaluate]
-        E1["results vs criteria<br/>docs/session 5/evaluation-report.md §2<br/>R²=0.639 · MAE=9.96 µg/m³"]
-        E2["failure-gallery.md<br/>6 cases · worst: winter MAE 16.28"]
+        E1["results vs criteria<br/>docs/session 5/evaluation-report.md §2<br/>R²=0.850 · MAE=6.48 µg/m³ (v2)"]
+        E2["failure-gallery.md<br/>6 cases · worst: winter MAE 9.12 (v2)"]
         E3["stress tests<br/>notebooks/05-evaluation.ipynb<br/>drop month +126% · force-winter +194%"]
         E4["evaluation-log.md<br/>10 tests · 4 weakened verdict"]
     end
 
     subgraph decide [Phase 5 · Decide]
-        D1["verdict: ITERATE<br/>~75% confidence"]
-        D2["not claiming: causal · winter reliable<br/>uncertainty intervals · grid extrapolation"]
+        D1["verdict: CONDITIONAL DEPLOY<br/>~85% confidence"]
+        D2["not claiming: causal · land use drives PM2.5<br/>uncertainty intervals deployable · grid extrapolation"]
     end
 
     subgraph future [Future · Phase 6–7]
-        F1["add ERA5 BLH + temp<br/>re-train (planned · Session 6)"]
         F2["decision-facing dashboard<br/>(planned · Session 6)"]
         F3["final presentation<br/>(planned · Session 7)"]
     end
 
-    I1 & I2 --> I3
+    I1 & I2 & I4 --> I3
     I3 --> B1 --> B2
     B2 --> E1
     B1 --> E1 & E3
     E1 --> E2 --> E3 --> E4
     E4 --> D1 --> D2
-    D2 -.->|ITERATE fix| F1 --> F2 --> F3
+    D2 -.->|S6 deploy| F2 --> F3
 ```
 
 ---
 
 ## Components — implemented (Phase 4–5)
 
-### `monthly aggregation` — `data/training/krakow_model_dataset_monthly.csv`
+### `monthly dataset v2` — `data/training/krakow_model_dataset_monthly.csv`
 
-- **Input contract:** `data/output/krakow_final_dataset.csv` (13,597 daily rows, 79 cols)
-- **Output contract:** 471 station-months · 19 cols · `pm25` = monthly mean · 13 `luse_r005_*` land use cols + `month`, `year`, `station_id`, `station_lat`, `station_lon`
+- **Input contract:** `data/output/krakow_final_dataset.csv` (13,597 daily rows, 79 cols) + `data/training/era5_monthly.csv` (Open-Meteo ERA5-Land, 504 rows)
+- **Output contract:** 471 station-months · 21 cols · `pm25` = monthly mean · 13 `luse_r005_*` + `month`, `year`, `station_id`, `station_lat`, `station_lon` + `mean_temp_monthly`, `blh_monthly`
 - **Key decision:** daily → monthly aggregation required because land use features are static per station; daily data with static features gives only 4 unique feature vectors in training (one per train station), collapsing R² to 0.29.
 
 ### `LOSO group split` — `src/split_data.py`
@@ -73,18 +73,19 @@ flowchart LR
 - **Split constants:** `TEST_STATIONS = {zloty_rog, nowa_huta}` · `VAL_STATIONS = {kurdwanow}`
 - **Failure mode:** wrong input path or missing `station_id` column → `ValueError` raised
 
-### `Random Forest Pipeline` — `models/baseline.joblib`
+### `Random Forest Pipeline v2` — `models/baseline.joblib`
 
-- **Input contract:** train/val CSVs from split · `FEATURE_COLS` = 13 `luse_r005_*` + `month`
-- **Output contract:** fitted sklearn Pipeline (impute → scale → RF) · round-trip check passes · 1.05 MB
+- **Input contract:** train/val CSVs from split · `FEATURE_COLS` = 13 `luse_r005_*` + `month` + `mean_temp_monthly` + `blh_monthly` (16 features)
+- **Output contract:** fitted sklearn Pipeline (impute → scale → RF) · round-trip check passes · 1.19 MB
 - **Hyperparameters:** `n_estimators=300`, `min_samples_leaf=5`, `random_state=42`
-- **Failure mode:** missing FEATURE_COLS → `ValueError`; loaded model must reproduce `np.allclose` predictions
+- **v2 test metrics:** R²=0.850, MAE=6.48 µg/m³, winter MAE=9.12 µg/m³
+- **Failure mode:** missing FEATURE_COLS → `ValueError`; loaded model must reproduce `np.allclose` predictions; `blh_monthly` has 37/471 NaN (imputer fills with median)
 
 ### `results vs criteria` — `docs/session 5/evaluation-report.md` §2
 
-- **Input contract:** S1 success criteria + test metrics from `03-modelling.ipynb` cell c19
+- **Input contract:** S1 success criteria + test metrics from v2 model evaluation (2026-06-08)
 - **Output contract:** per-criterion table (met / partial / missed) with evidence pointers
-- **Results:** R² 0.639 ≥ 0.40 (met) · MAE 9.96 < 12 (met) · beats seasonal by 2.7% (partial)
+- **v2 Results:** R² 0.850 ≥ 0.40 (met) · MAE 6.48 < 12 (met) · beats seasonal by 36.7% (met)
 - **Failure mode:** a criterion that can't be filled = a claim that can't be made
 
 ### `failure-gallery.md` — `docs/session 5/failure-gallery.md`
@@ -97,7 +98,7 @@ flowchart LR
 ### `the verdict` — `docs/session 5/evaluation-report.md` §7
 
 - **Input contract:** sections 2–6 of the report
-- **Output contract:** ITERATE · ERA5 BLH + temperature as the one specific fix · ~75% confidence
+- **Output contract:** CONDITIONAL DEPLOY · weather-integrated PM2.5 predictor · ~85% confidence · uncertainty intervals not yet deployable
 - **Failure mode:** "we'll keep improving it" = a non-verdict
 
 ---
@@ -106,8 +107,8 @@ flowchart LR
 
 | Component | Lands in | One-line role |
 |---|---|---|
-| ERA5 BLH + temperature features added | Session 6 | Separates weather signal from urban form signal; fixes winter failure |
-| Conformal prediction intervals | Session 6 | Replaces tree-quantile intervals; targets ≥ 85% coverage |
+| ~~ERA5 BLH + temperature features added~~ | ~~Session 6~~ | **Done in Session 5 iteration** |
+| Conformal prediction intervals | Session 6 | Replaces tree-quantile intervals; targets ≥ 85% coverage (currently 72.5%) |
 | Decision-facing dashboard | Session 6 | Wraps the verdict for the planning analyst — spatial PM2.5 map with uncertainty zones |
 | Final presentation | Session 7 | Communicates verdict + limits to the decision-maker |
 
@@ -133,10 +134,10 @@ The verdict reads only from `evaluation-report.md` sections 2–6. Every number 
 
 ## Open seams
 
-- **Seam 1:** ERA5 features not yet in training data. The re-training loop (ITERATE verdict) requires adding `mean_temp_monthly` and `blh_monthly` to `data/training/krakow_model_dataset_monthly.csv` before re-running `src/split_data.py` and `src/baseline_model.py`.
-  - **Mitigation:** ERA5-Land data is available via Copernicus CDS API for the exact station coordinates and month range. `src/clean_data.py` would need a new join step.
-- **Seam 2:** Uncertainty intervals (45.7% coverage) are in the joblib artifact. If S6 loads the artifact and reports intervals without checking coverage, it will mislead analysts.
+- **Seam 1 (CLOSED):** ERA5 features added in Session 5 iteration. `data/training/era5_monthly.csv` fetched from Open-Meteo, joined to monthly dataset, `FEATURE_COLS` updated to 16 features, model retrained. v2 test R²=0.850.
+- **Seam 2:** Uncertainty intervals (72.5% coverage, target ≥ 85%) are in the joblib artifact. If S6 loads the artifact and reports intervals without checking coverage, it will mislead analysts.
   - **Mitigation:** add a `coverage_on_val` metadata field to the joblib (or a sidecar JSON) so the dashboard can gate on coverage < 85%.
+- **Seam 3 (new):** `blh_monthly` has 37/471 NaN values in the training data (Open-Meteo gaps). SimpleImputer fills with median. If ERA5 data is refreshed, verify NaN rate has not increased.
 
 ---
 

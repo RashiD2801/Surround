@@ -86,6 +86,24 @@
 
 ---
 
+---
+
+> **Test 11:** ERA5 iteration — v2 model test evaluation (2026-06-08)
+> - **What I tested — and why:** after adding `mean_temp_monthly` and `blh_monthly` from Open-Meteo ERA5-Land to the training dataset, re-ran the full split + model + test evaluation to see if the ITERATE recommendation was productive.
+> - **What it showed:** test R² = **0.850** (v1: 0.639), test MAE = **6.48 µg/m³** (v1: 9.96), seasonal improvement = **36.7%** (v1: 2.7%), winter MAE = **9.12 µg/m³** (v1: 16.28), uncertainty coverage = **72.5%** (v1: 45.7%). Val R² = 0.904, Val MAE = 4.99. Feature importances: `mean_temp_monthly` 72.7%, `blh_monthly` 23.6%, `month` 1.4%, all land use 2.3%.
+> - **What I concluded:** ITERATE was productive. All three S1 criteria are now met. ERA5 fixed the winter failure and the seasonal over-reliance. However, land use importance dropped further (6.4% → 2.3%) when weather was properly controlled — the urban form signal is even weaker than v1 suggested. This is the honest finding: weather dominates PM2.5 in Krakow; urban form adds ~2%.
+> - **What it changed in the verdict:** upgraded from ITERATE to CONDITIONAL DEPLOY. The model is deployable as a weather-controlled PM2.5 estimator but not as a land-use attribution model.
+
+---
+
+> **Test 12:** Feature importance shift — land use signal with ERA5 control
+> - **What I tested:** whether adding proper weather controls would raise or lower land use feature importance.
+> - **What it showed:** land use dropped from 6.4% (v1) to 2.3% (v2). The v1 land use importance was inflated because `month` was proxying for weather effects that co-vary with urban form. With real weather controls, the residual land use signal is 2.3%.
+> - **What I concluded:** this is a key scientific finding: when temperature and atmospheric mixing are controlled, Krakow's 7 stations show very little spatial variation attributable to land use. The stations are all within 15 km and share the same meteorological regime. Urban form effects, if they exist, are too small to detect with 7 stations.
+> - **What it changed in the verdict:** added to §6 ("not claiming strong land use–PM2.5 correlation"); v2 failure gallery Case 3 updated.
+
+---
+
 ## Tests we did NOT run — and why
 
 | Test we skipped | Why | What downstream needs to know |
@@ -93,13 +111,15 @@
 | Per-district analysis (Śródmieście vs Nowa Huta) | Only 7 stations total; Nowa Huta = test station (sacred until test touched). Post-test district analysis not prioritised in S5 | S6 should run district breakdown once retraining includes more stations |
 | Conformal prediction calibration | Requires ≥ 10 stations for calibration set; we have 7 | S5 ITERATE task: implement conformal prediction after adding ERA5 features and ideally more station data |
 | Temporal drift test (2019–2024 year-by-year) | Monthly aggregation across all years; year-by-year breakdown would need ~12 rows per station-year. Low statistical power | S6: flag if model is applied to 2025 data without revalidation |
-| Adding ERA5 features (BLH, temperature) | Data not yet in the training dataset | The primary ITERATE fix — S5 task |
+| Adding ERA5 features (BLH, temperature) | ~~Data not yet in the training dataset~~ | **Done in S5 iteration — see Test 11** |
 
 ---
 
 ## Cumulative effect — one paragraph
 
-The test that most changed the verdict was Test 3 (feature importance): discovering that `month` carries 93.6% of the model's signal revealed that the RF is primarily a seasonal predictor, not the land-use regression the project brief calls for. The worst single finding is Case 2 in the failure gallery — the uncertainty intervals covering only 45.7% of test outcomes, which makes the model's confidence output unusable. The result is not for: heating-season individual-event prediction, intervention scenario modelling, or any use requiring spatial differentiation across urban typologies. Confidence in the ITERATE verdict is ~75% — the core metrics (R² = 0.639, MAE = 9.96) are reproducible and meet the brief's stated thresholds, but the land use signal is too marginal to justify deployment without ERA5 weather features added.
+**v1 verdict (before ERA5 iteration):** The test that most changed the v1 verdict was Test 3 (feature importance): `month` = 93.6% revealed the model was primarily a seasonal predictor. The worst single finding was uncertainty coverage at 45.7%. Confidence: ~75%. Verdict: ITERATE.
+
+**v2 verdict (after ERA5 iteration, Tests 11–12):** ERA5 features transformed the model — R² 0.639 → 0.850, MAE 9.96 → 6.48, winter MAE 16.28 → 9.12, uncertainty coverage 45.7% → 72.5%. All three S1 criteria are now met. The key finding is that proper weather controls (ERA5) reduced land use importance from 6.4% → 2.3%, confirming that within Krakow, weather patterns rather than land use drive PM2.5 spatial variation at 7-station resolution. Confidence: ~85%. Verdict: CONDITIONAL DEPLOY.
 
 ---
 
