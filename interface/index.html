@@ -404,6 +404,13 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
           <span class="sw-track"></span>
         </label>
       </div>
+      <div id="luLegend" style="display:none;margin-top:10px;overflow-y:auto;max-height:220px;
+           border-radius:6px;background:rgba(255,255,255,0.04);border:1px solid var(--border);padding:6px">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:5px;letter-spacing:0.05em">CORINE LAND COVER KEY</div>
+        <img id="luLegImg"
+          src="https://image.discomap.eea.europa.eu/arcgis/services/Corine/CLC2018_WM/MapServer/WmsServer?SERVICE=WMS&REQUEST=GetLegendGraphic&VERSION=1.3.0&LAYER=12&FORMAT=image/png"
+          style="width:100%;image-rendering:auto" alt="CORINE legend" loading="lazy">
+      </div>
     </div>
 
     <div class="sb-search">
@@ -762,29 +769,30 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('on'),2800);
 }
 
-// ── Land use overlay (CORINE 2018 WMS) ───────────────────────────────────────
+// ── Land use overlay (CORINE 2018 WMS, layer 12 = raster) ────────────────────
 let luLayer=null;
+const LU_WMS='https://image.discomap.eea.europa.eu/arcgis/services/Corine/CLC2018_WM/MapServer/WmsServer';
 function toggleLU(on){
   const bp=map.getPane('basepane');
+  const leg=document.getElementById('luLegend');
   if(on){
     if(!luLayer){
-      luLayer=L.tileLayer.wms(
-        'https://image.discomap.eea.europa.eu/arcgis/services/Corine/CLC2018_WM/MapServer/WmsServer',
-        {
-          pane:'lupane',
-          layers:'0',
-          format:'image/png',
-          transparent:true,
-          opacity:0.75,
-          attribution:'CORINE Land Cover 2018 · Copernicus / EEA'
-        }
-      );
+      luLayer=L.tileLayer.wms(LU_WMS,{
+        pane:'lupane',
+        layers:'12',
+        format:'image/png',
+        transparent:true,
+        opacity:0.78,
+        attribution:'CORINE Land Cover 2018 · Copernicus / EEA'
+      });
     }
     luLayer.addTo(map);
-    bp.style.filter='brightness(0.55) contrast(1.0) saturate(0.45)';
+    bp.style.filter='brightness(0.60) contrast(0.95) saturate(0.4)';
+    leg.style.display='block';
   } else {
     if(luLayer) map.removeLayer(luLayer);
     bp.style.filter='brightness(0.30) contrast(1.18) saturate(0.55)';
+    leg.style.display='none';
   }
 }
 
