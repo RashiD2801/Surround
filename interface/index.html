@@ -230,6 +230,31 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
 }
 .exp:hover{background:rgba(255,255,255,0.09);color:#fff}
 
+/* year slider */
+.yr-row{display:flex;align-items:center;gap:9px;margin-top:11px}
+.yr-cap{font-size:10px;color:var(--muted);flex-shrink:0}
+.yr-val{font-size:12px;font-weight:700;transition:color 0.3s}
+.yr-sl{
+  flex:1;-webkit-appearance:none;appearance:none;
+  height:3px;border-radius:2px;outline:none;cursor:pointer;
+  background:rgba(255,255,255,0.1);
+}
+.yr-sl::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 10px rgba(255,64,32,0.45);
+  cursor:pointer;transition:transform 0.15s;
+}
+.yr-sl::-webkit-slider-thumb:hover{transform:scale(1.25)}
+.yr-sl::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;border:none;
+  background:var(--accent);cursor:pointer;
+}
+.yr-note{
+  font-size:10px;color:var(--muted);
+  margin-top:8px;min-height:14px;font-style:italic;
+  transition:opacity 0.2s;
+}
+
 /* ── MAP CHROME ──────────────────────────────────────────────────────────────── */
 .month-pill{
   position:absolute;top:20px;left:50%;transform:translateX(-50%);
@@ -325,6 +350,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
     <div class="sb-section">
       <div class="sec-label">Month</div>
       <div class="months" id="mGrid"></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sec-label">Year &nbsp;<span class="yr-val" id="yrVal">2024</span></div>
+      <div class="yr-row">
+        <span class="yr-cap">2024</span>
+        <input type="range" class="yr-sl" id="yrSl" min="2024" max="2034" value="2024" step="1">
+        <span class="yr-cap">2034</span>
+      </div>
+      <div class="yr-note" id="yrNote"></div>
     </div>
 
     <div class="sb-search">
@@ -427,19 +462,27 @@ const PRESETS = [
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let month = new Date().getMonth();
+let year  = 2024;
 let selLat=null,selLon=null,selBase=null,selName=null;
 let map, cells=[], selMarker=null;
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
-function idw(lat,lon,m){
+// Year trend factor: −3%/yr from 2024 (Krakow coal ban trajectory)
+function yf(){ return Math.pow(0.97, year - 2024); }
+
+// Spatial IDW only — no month or year scaling (gives the annual "base" at a location)
+function baseIdw(lat,lon){
   let ws=0,vs=0;
   STATIONS.forEach(s=>{
     const d2=Math.pow(lat-s.lat,2)+Math.pow((lon-s.lon)*0.64,2);
     const w=1/(d2+0.00004);
     ws+=w; vs+=w*s.base;
   });
-  return (vs/ws)*MMULT[m];
+  return vs/ws;
 }
+
+// Full value: spatial × monthly × yearly
+function idw(lat,lon,m){ return baseIdw(lat,lon)*MMULT[m]*yf(); }
 
 function color(v,a=0.62){
   let r,g,b;
@@ -539,7 +582,7 @@ function setMonth(i){
 // ── Pick ──────────────────────────────────────────────────────────────────────
 function pick(lat,lon,base,name){
   selLat=lat;selLon=lon;
-  selBase=base!=null?base:idw(lat,lon,month)/MMULT[month];
+  selBase=base!=null?base:baseIdw(lat,lon);
   selName=name||nearestName(lat,lon);
   if(selMarker)map.removeLayer(selMarker);
   selMarker=L.circleMarker([lat,lon],{
@@ -559,7 +602,7 @@ function nearestName(lat,lon){
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 function renderCard(){
-  const v=selBase*MMULT[month];
+  const v=selBase*MMULT[month]*yf();
   const st=status(v);
 
   document.getElementById('ce').style.display='none';
@@ -589,7 +632,7 @@ function renderCard(){
   // Monthly bars
   const bars=document.getElementById('mbars');
   bars.innerHTML='';
-  const vals=MMULT.map(m=>selBase*m);
+  const vals=MMULT.map(m=>selBase*m*yf());
   const maxV=Math.max(...vals);
   vals.forEach((mv,i)=>{
     const s=status(mv);
@@ -613,7 +656,7 @@ function renderCard(){
 
 function dotSync(st){
   if(!st){
-    const v=idw(50.062,19.944,month);
+    const v=baseIdw(50.062,19.944)*MMULT[month]*yf();
     st=status(v);
   }
   const d=document.getElementById('ldot');
@@ -669,6 +712,25 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('on'),2800);
 }
 
+// ── Year slider ───────────────────────────────────────────────────────────────
+document.getElementById('yrSl').addEventListener('input',e=>{
+  year=+e.target.value;
+  const yvEl=document.getElementById('yrVal');
+  yvEl.textContent=year;
+  yvEl.style.color=year===2024?'var(--text)':'#EAB308';
+  const note=document.getElementById('yrNote');
+  if(year===2024){
+    note.textContent='';
+    document.getElementById('mpill').style.borderColor='var(--border)';
+  }else{
+    const pct=Math.round((1-yf())*100);
+    note.textContent=`Trend projection · −${pct}% vs 2024`;
+    document.getElementById('mpill').style.borderColor='rgba(234,179,8,0.4)';
+  }
+  refreshGrid();
+  if(selBase!==null)renderCard();
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById('landing').addEventListener('click',()=>{
   document.getElementById('landing').classList.add('out');
@@ -689,18 +751,22 @@ function initMap(){
     subdomains:'abcd',maxZoom:19
   }).addTo(map);
 
-  // Labels rendered on top of PM2.5 grid
-  map.createPane('labelspane');
-  map.getPane('labelspane').style.zIndex=650;
-  map.getPane('labelspane').style.pointerEvents='none';
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',{
-    pane:'labelspane',
-    attribution:'',
-    subdomains:'abcd',maxZoom:19
-  }).addTo(map);
-
   buildGrid();
   buildMarkers();
+
+  // Single city label — no other tile labels
+  L.marker([50.062,19.944],{
+    icon:L.divIcon({
+      className:'',
+      html:`<div style="font-family:Inter,sans-serif;font-size:11px;font-weight:700;
+             letter-spacing:0.16em;text-transform:uppercase;
+             color:rgba(255,255,255,0.72);
+             text-shadow:0 1px 4px rgba(0,0,0,0.95),0 0 16px rgba(0,0,0,0.7);
+             white-space:nowrap;pointer-events:none;user-select:none">KRAKÓW</div>`,
+      iconAnchor:[24,6]
+    }),
+    interactive:false,zIndexOffset:-1000
+  }).addTo(map);
   buildMonthGrid();
   document.getElementById('mpill').textContent=MFULL[month];
   dotSync();
