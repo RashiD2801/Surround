@@ -230,6 +230,31 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
 }
 .exp:hover{background:rgba(255,255,255,0.09);color:#fff}
 
+/* land use toggle */
+.lu-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.lu-label{flex:1}
+.lu-sub{font-size:9px;color:rgba(255,255,255,0.25);margin-top:3px;letter-spacing:0.02em}
+.sw-wrap{position:relative;display:inline-block;width:38px;height:21px;flex-shrink:0}
+.sw-wrap input{opacity:0;width:0;height:0;position:absolute}
+.sw-track{
+  position:absolute;inset:0;cursor:pointer;
+  background:rgba(255,255,255,0.09);border:1px solid var(--border);
+  border-radius:21px;transition:all 0.22s;
+}
+.sw-track:before{
+  content:'';position:absolute;
+  width:13px;height:13px;border-radius:50%;
+  left:3px;top:3px;
+  background:rgba(255,255,255,0.45);
+  transition:transform 0.22s,background 0.22s;
+}
+.sw-wrap input:checked+.sw-track{
+  background:rgba(255,64,32,0.2);border-color:rgba(255,64,32,0.5);
+}
+.sw-wrap input:checked+.sw-track:before{
+  transform:translateX(17px);background:var(--accent);
+}
+
 /* year projection slider */
 .yr-row{display:flex;align-items:center;gap:9px;margin-top:11px}
 .yr-cap{font-size:10px;color:var(--muted);flex-shrink:0}
@@ -366,6 +391,19 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
         <span class="yr-cap">2030</span>
       </div>
       <div class="yr-note" id="yrNote"></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="lu-row">
+        <div class="lu-label">
+          <div class="sec-label" style="margin-bottom:3px">Land use</div>
+          <div class="lu-sub">CORINE 2018 · Copernicus / EEA</div>
+        </div>
+        <label class="sw-wrap">
+          <input type="checkbox" id="luChk" onchange="toggleLU(this.checked)">
+          <span class="sw-track"></span>
+        </label>
+      </div>
     </div>
 
     <div class="sb-search">
@@ -724,6 +762,32 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('on'),2800);
 }
 
+// ── Land use overlay (CORINE 2018 WMS) ───────────────────────────────────────
+let luLayer=null;
+function toggleLU(on){
+  const bp=map.getPane('basepane');
+  if(on){
+    if(!luLayer){
+      luLayer=L.tileLayer.wms(
+        'https://image.discomap.eea.europa.eu/arcgis/services/Corine/CLC2018_WM/MapServer/WmsServer',
+        {
+          pane:'lupane',
+          layers:'0',
+          format:'image/png',
+          transparent:true,
+          opacity:0.75,
+          attribution:'CORINE Land Cover 2018 · Copernicus / EEA'
+        }
+      );
+    }
+    luLayer.addTo(map);
+    bp.style.filter='brightness(0.55) contrast(1.0) saturate(0.45)';
+  } else {
+    if(luLayer) map.removeLayer(luLayer);
+    bp.style.filter='brightness(0.30) contrast(1.18) saturate(0.55)';
+  }
+}
+
 // ── Year slider (2024–2030) ───────────────────────────────────────────────────
 document.getElementById('yrSl').addEventListener('input',e=>{
   year=+e.target.value;
@@ -750,6 +814,11 @@ function initMap(){
   map.createPane('basepane');
   map.getPane('basepane').style.zIndex=199;
   map.getPane('basepane').style.filter='brightness(0.30) contrast(1.18) saturate(0.55)';
+
+  // Land use pane: sits above base but below pollution grid (overlayPane = 400)
+  map.createPane('lupane');
+  map.getPane('lupane').style.zIndex=201;
+
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',{
     pane:'basepane',
     attribution:'&copy; OpenStreetMap &copy; CARTO',
