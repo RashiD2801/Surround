@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surround</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,900;1,14..32,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#070707;
+  --panel:rgba(8,8,8,0.93);
+  --border:rgba(255,255,255,0.07);
+  --text:#fff;
+  --muted:rgba(255,255,255,0.38);
+  --accent:#FF4020;
+}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text)}
+
+/* ── LANDING ────────────────────────────────────────────────────────────────── */
+#landing{
+  position:fixed;inset:0;z-index:1000;
+  display:flex;align-items:center;justify-content:center;
+  background:#060606;cursor:pointer;
+  transition:opacity 0.9s cubic-bezier(0.4,0,0.2,1);
+}
+#landing.out{opacity:0;pointer-events:none}
+
+.dot-grid{
+  position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px);
+  background-size:36px 36px;
+  pointer-events:none;
+}
+
+.blob{position:absolute;border-radius:50%;filter:blur(110px);pointer-events:none}
+.b1{width:700px;height:700px;background:radial-gradient(circle,#FF2200 0%,transparent 70%);
+    opacity:0.13;top:-15%;left:-12%;animation:drift1 22s ease-in-out infinite}
+.b2{width:560px;height:560px;background:radial-gradient(circle,#FF7700 0%,transparent 70%);
+    opacity:0.10;bottom:-18%;right:-8%;animation:drift2 28s ease-in-out infinite}
+.b3{width:440px;height:440px;background:radial-gradient(circle,#5500CC 0%,transparent 70%);
+    opacity:0.12;top:28%;right:18%;animation:drift3 18s ease-in-out infinite}
+
+@keyframes drift1{0%,100%{transform:translate(0,0)}33%{transform:translate(50px,-40px)}66%{transform:translate(-30px,50px)}}
+@keyframes drift2{0%,100%{transform:translate(0,0)}40%{transform:translate(-60px,30px)}70%{transform:translate(40px,-50px)}}
+@keyframes drift3{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,60px)}}
+
+.lc{position:relative;text-align:center;user-select:none}
+
+.lt{
+  font-size:clamp(80px,14vw,172px);font-weight:900;
+  letter-spacing:-0.05em;line-height:0.88;
+  color:#fff;
+  animation:up 1.1s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.ls{
+  margin-top:22px;font-size:15px;font-weight:300;
+  color:rgba(255,255,255,0.4);letter-spacing:0.015em;
+  animation:up 1.1s cubic-bezier(0.16,1,0.3,1) 0.25s both;
+}
+
+.le{
+  margin-top:72px;font-size:10px;font-weight:500;
+  letter-spacing:0.24em;text-transform:uppercase;
+  color:rgba(255,255,255,0.18);
+  animation:up 1.1s cubic-bezier(0.16,1,0.3,1) 0.5s both,
+             blink 2.4s ease 1.6s infinite;
+}
+
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:0.18}50%{opacity:0.4}}
+
+/* ── APP ────────────────────────────────────────────────────────────────────── */
+#app{
+  position:fixed;inset:0;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.8s cubic-bezier(0.4,0,0.2,1) 0.2s;
+}
+#app.on{opacity:1;pointer-events:all}
+#map{position:absolute;inset:0}
+
+/* ── SIDEBAR ────────────────────────────────────────────────────────────────── */
+.sb{
+  position:absolute;top:0;left:0;bottom:0;width:360px;z-index:500;
+  background:var(--panel);
+  backdrop-filter:blur(28px) saturate(160%);
+  -webkit-backdrop-filter:blur(28px) saturate(160%);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:0;
+  overflow:hidden;
+}
+
+.sb-logo{
+  padding:26px 24px 22px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.logo-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 14px var(--accent);
+  transition:background 0.5s,box-shadow 0.5s;
+  flex-shrink:0;
+}
+.logo-name{font-size:12px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase}
+.logo-loc{font-size:10px;font-weight:400;color:var(--muted);margin-left:auto;letter-spacing:0.04em}
+
+/* month section */
+.sb-section{padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sec-label{font-size:9px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+
+.months{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.mb{
+  height:30px;border-radius:6px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);
+  color:var(--muted);font-size:11px;font-weight:500;
+  font-family:inherit;cursor:pointer;
+  transition:all 0.18s;
+}
+.mb:hover{background:rgba(255,255,255,0.09);color:#fff}
+.mb.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 18px rgba(255,64,32,0.35)}
+
+/* search */
+.sb-search{padding:16px 24px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative}
+.si{
+  width:100%;height:42px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:#fff;font-family:inherit;font-size:13px;
+  padding:0 40px 0 14px;outline:none;
+  transition:border-color 0.2s,background 0.2s;
+}
+.si::placeholder{color:var(--muted)}
+.si:focus{border-color:rgba(255,255,255,0.18);background:rgba(255,255,255,0.08)}
+.si-icon{position:absolute;right:38px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.sr{
+  position:absolute;top:calc(100% - 16px + 4px);left:24px;right:24px;
+  background:#111;border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;z-index:10;display:none;
+}
+.sri{
+  padding:11px 14px;font-size:12px;cursor:pointer;
+  border-bottom:1px solid var(--border);transition:background 0.15s;
+}
+.sri:last-child{border-bottom:none}
+.sri:hover{background:rgba(255,255,255,0.06)}
+.sri-main{color:#fff;font-weight:500}
+.sri-sub{color:var(--muted);font-size:10px;margin-top:2px}
+
+/* card */
+.sb-card{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;
+}
+
+.card-empty{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  color:var(--muted);padding:32px;
+}
+.ce-ring{
+  width:52px;height:52px;border-radius:50%;
+  border:1.5px dashed rgba(255,255,255,0.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;opacity:0.5;
+}
+.ce-text{font-size:12px;text-align:center;line-height:1.7;color:var(--muted)}
+
+.card-data{display:none;flex-direction:column;height:100%}
+.card-data.on{display:flex}
+
+/* card header */
+.ch{
+  padding:20px 22px 18px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.ch-loc{
+  font-size:10px;font-weight:500;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ch-row{display:flex;align-items:flex-end;gap:6px}
+.ch-val{font-size:62px;font-weight:900;line-height:1;transition:color 0.4s}
+.ch-unit{font-size:13px;font-weight:300;color:var(--muted);margin-bottom:9px}
+.ch-badge{
+  margin-left:auto;margin-bottom:8px;
+  padding:4px 11px;border-radius:20px;
+  font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+  border:1px solid transparent;transition:all 0.4s;
+}
+
+/* EU bar */
+.cl{padding:12px 22px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cl-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:7px}
+.cl-bg{height:3px;border-radius:2px;background:rgba(255,255,255,0.07);position:relative}
+.cl-fill{height:100%;border-radius:2px;max-width:100%;transition:width 0.7s cubic-bezier(0.4,0,0.2,1),background 0.4s}
+.cl-mark{position:absolute;top:-5px;width:1.5px;height:13px;background:rgba(255,255,255,0.22);border-radius:1px}
+
+/* monthly chart */
+.cc{padding:16px 22px 14px;flex-shrink:0}
+.monthly{display:flex;gap:3px;align-items:flex-end;height:68px;margin-top:10px}
+.bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.bf{width:100%;border-radius:2px 2px 0 0;transition:height 0.55s cubic-bezier(0.4,0,0.2,1),background 0.4s;min-height:2px}
+.bl{font-size:9px;color:var(--muted);font-weight:500;flex-shrink:0}
+.bc.cur .bl{color:#fff}
+.bc.cur .bf{opacity:1 !important}
+
+/* footer */
+.cf{
+  padding:12px 22px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  margin-top:auto;
+}
+.cfd{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+.cfd-dot{width:6px;height:6px;border-radius:50%;transition:background 0.4s}
+.exp{
+  padding:6px 13px;border-radius:6px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  color:rgba(255,255,255,0.5);font-size:10px;font-weight:500;
+  font-family:inherit;cursor:pointer;transition:all 0.18s;letter-spacing:0.02em;
+}
+.exp:hover{background:rgba(255,255,255,0.09);color:#fff}
+
+/* ── MAP CHROME ──────────────────────────────────────────────────────────────── */
+.month-pill{
+  position:absolute;top:20px;left:50%;transform:translateX(-50%);
+  z-index:400;pointer-events:none;
+  background:rgba(8,8,8,0.88);
+  backdrop-filter:blur(16px);
+  border:1px solid var(--border);
+  border-radius:20px;padding:7px 22px;
+  font-size:12px;font-weight:600;letter-spacing:0.05em;
+  white-space:nowrap;
+  transition:opacity 0.3s;
+}
+
+.legend{
+  position:absolute;bottom:26px;right:20px;z-index:400;
+  background:rgba(8,8,8,0.88);
+  backdrop-filter:blur(16px);
+  border:1px solid var(--border);
+  border-radius:10px;padding:13px 16px;
+  display:flex;flex-direction:column;gap:7px;
+}
+.leg-title{font-size:9px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.leg-row{display:flex;align-items:center;gap:9px}
+.leg-sw{width:18px;height:7px;border-radius:2px;flex-shrink:0}
+.leg-lbl{font-size:10px;color:rgba(255,255,255,0.55)}
+
+.coords{
+  position:absolute;bottom:26px;left:380px;z-index:400;
+  background:rgba(8,8,8,0.7);border:1px solid var(--border);
+  border-radius:6px;padding:5px 12px;
+  font-size:10px;color:var(--muted);
+  font-family:'Inter',monospace;letter-spacing:0.04em;
+  pointer-events:none;opacity:0;transition:opacity 0.2s;
+}
+
+/* ── TOAST ────────────────────────────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:28px;left:50%;
+  transform:translateX(-50%) translateY(70px);
+  background:#161616;border:1px solid var(--border);
+  border-radius:8px;padding:10px 20px;
+  font-size:11px;color:rgba(255,255,255,0.6);
+  transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index:9999;white-space:nowrap;
+}
+.toast.on{transform:translateX(-50%) translateY(0)}
+
+/* ── LEAFLET OVERRIDES ──────────────────────────────────────────────────────── */
+.leaflet-control-attribution{
+  background:rgba(0,0,0,0.45)!important;
+  color:rgba(255,255,255,0.22)!important;
+  font-size:9px!important;
+}
+.leaflet-control-attribution a{color:rgba(255,255,255,0.3)!important}
+.leaflet-control-zoom{display:none}
+.leaflet-popup-content-wrapper{
+  background:#111;color:#fff;border:1px solid var(--border);
+  border-radius:8px;box-shadow:none;font-family:'Inter',sans-serif;font-size:12px;
+}
+.leaflet-popup-tip{background:#111}
+.leaflet-popup-close-button{color:var(--muted)!important}
+
+::-webkit-scrollbar{width:0}
+</style>
+</head>
+<body>
+
+<!-- LANDING ───────────────────────────────────────────────────────────────── -->
+<div id="landing">
+  <div class="dot-grid"></div>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="lc">
+    <div class="lt">SURROUND</div>
+    <div class="ls">Air quality foresight for Krakow's urban planners</div>
+    <div class="le">click anywhere to enter</div>
+  </div>
+</div>
+
+<!-- APP ────────────────────────────────────────────────────────────────────── -->
+<div id="app">
+  <div id="map"></div>
+
+  <!-- Sidebar -->
+  <div class="sb">
+    <div class="sb-logo">
+      <div class="logo-dot" id="ldot"></div>
+      <div class="logo-name">Surround</div>
+      <div class="logo-loc">Krakow · PM₂.₅</div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sec-label">Month</div>
+      <div class="months" id="mGrid"></div>
+    </div>
+
+    <div class="sb-search">
+      <input class="si" id="si" type="text" placeholder="Search address or click map…" autocomplete="off">
+      <svg class="si-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <div class="sr" id="sr"></div>
+    </div>
+
+    <div class="sb-card">
+      <div class="card-empty" id="ce">
+        <div class="ce-ring">◎</div>
+        <div class="ce-text">Select a location on the map<br>or search an address above</div>
+      </div>
+      <div class="card-data" id="cd">
+        <div class="ch">
+          <div class="ch-loc" id="cloc">—</div>
+          <div class="ch-row">
+            <div class="ch-val" id="cval">—</div>
+            <div class="ch-unit">µg/m³</div>
+            <div class="ch-badge" id="cbadge">—</div>
+          </div>
+        </div>
+
+        <div class="cl">
+          <div class="cl-top">
+            <span>EU annual mean limit</span>
+            <span id="cpct">—</span>
+          </div>
+          <div class="cl-bg">
+            <div class="cl-fill" id="cfill"></div>
+            <div class="cl-mark" style="left:25%"></div>
+          </div>
+        </div>
+
+        <div class="cc">
+          <div class="sec-label">Monthly profile</div>
+          <div class="monthly" id="mbars"></div>
+        </div>
+
+        <div class="cf">
+          <div class="cfd">
+            <div class="cfd-dot" id="cdot"></div>
+            <span id="cconf">—</span>
+          </div>
+          <button class="exp" onclick="exportPDF()">↗ Export PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map overlays -->
+  <div class="month-pill" id="mpill">—</div>
+  <div class="coords" id="coords">50.0617° N  19.9372° E</div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="leg-title">PM₂.₅ µg/m³</div>
+    <div class="leg-row"><div class="leg-sw" style="background:#22C55E"></div><div class="leg-lbl">&lt; 15 · Clean</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#EAB308"></div><div class="leg-lbl">15 – 25 · Moderate</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#F97316"></div><div class="leg-lbl">25 – 40 · High</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#EF4444"></div><div class="leg-lbl">40 – 60 · Very High</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#A855F7"></div><div class="leg-lbl">&gt; 60 · Extreme</div></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const STATIONS = [
+  {id:'aleja',   name:'Aleja Kraśnickiego', lat:50.0573, lon:19.9100, base:31},
+  {id:'kurdw',   name:'Kurdwanów',          lat:50.0076, lon:19.9742, base:27},
+  {id:'nowa',    name:'Nowa Huta',          lat:50.0683, lon:20.0530, base:37},
+  {id:'piast',   name:'Os. Piastów',        lat:50.0519, lon:19.8850, base:25},
+  {id:'wadow',   name:'Os. Wadów',          lat:50.0783, lon:19.8950, base:23},
+  {id:'dietla',  name:'Ul. Dietla',         lat:50.0566, lon:19.9442, base:30},
+  {id:'zloty',   name:'Złoty Róg',          lat:50.0647, lon:19.9450, base:27},
+];
+
+// Monthly multipliers — calibrated to model output (v2 ERA5)
+// Jan peak ~3.8×base, Aug trough ~0.72×base
+const MMULT = [3.8, 3.5, 2.7, 1.9, 1.4, 0.88, 0.72, 0.78, 1.15, 1.75, 2.45, 3.2];
+const MNAME = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MFULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const PRESETS = [
+  {addr:'Rynek Główny',          lat:50.0617, lon:19.9372, base:30},
+  {addr:'Nowa Huta',             lat:50.0683, lon:20.0530, base:37},
+  {addr:'Kazimierz',             lat:50.0517, lon:19.9441, base:29},
+  {addr:'Krowodrza',             lat:50.0764, lon:19.9257, base:25},
+  {addr:'Podgórze',              lat:50.0400, lon:19.9500, base:26},
+  {addr:'Bronowice',             lat:50.0650, lon:19.8800, base:22},
+  {addr:'Mistrzejowice',         lat:50.0900, lon:20.0100, base:31},
+  {addr:'Dębniki',               lat:50.0400, lon:19.9200, base:24},
+  {addr:'Śródmieście',           lat:50.0618, lon:19.9400, base:31},
+  {addr:'Prądnik Czerwony',      lat:50.0889, lon:19.9600, base:28},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let month = new Date().getMonth();
+let selLat=null,selLon=null,selBase=null,selName=null;
+let map, cells=[], selMarker=null;
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function idw(lat,lon,m){
+  let ws=0,vs=0;
+  STATIONS.forEach(s=>{
+    const d2=Math.pow(lat-s.lat,2)+Math.pow((lon-s.lon)*0.64,2);
+    const w=1/(d2+0.00004);
+    ws+=w; vs+=w*s.base;
+  });
+  return (vs/ws)*MMULT[m];
+}
+
+function color(v,a=0.74){
+  let r,g,b;
+  if(v<15){
+    const t=v/15;
+    r=Math.round(34+t*196);g=Math.round(197-t*28);b=Math.round(94-t*80);
+  }else if(v<25){
+    const t=(v-15)/10;
+    r=Math.round(230+t*15);g=Math.round(169-t*47);b=Math.round(14);
+  }else if(v<40){
+    const t=(v-25)/15;
+    r=249;g=Math.round(122-t*122);b=Math.round(22-t*22);
+  }else if(v<60){
+    const t=(v-40)/20;
+    r=Math.round(249-t*84);g=0;b=Math.round(t*80);
+  }else{
+    const t=Math.min((v-60)/40,1);
+    r=Math.round(165-t*20);g=0;b=Math.round(80+t*167);
+  }
+  return`rgba(${r},${g},${b},${a})`;
+}
+
+function status(v){
+  if(v<15)  return{label:'Clean',     col:'#22C55E',bg:'rgba(34,197,94,0.13)' };
+  if(v<25)  return{label:'Moderate',  col:'#EAB308',bg:'rgba(234,179,8,0.13)' };
+  if(v<40)  return{label:'High',      col:'#F97316',bg:'rgba(249,115,22,0.13)'};
+  if(v<60)  return{label:'Very High', col:'#EF4444',bg:'rgba(239,68,68,0.13)' };
+  return      {label:'Extreme',    col:'#A855F7',bg:'rgba(168,85,247,0.13)'};
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
+const STEP=0.013, LAMIN=49.955, LAMAX=50.135, LOMIN=19.820, LOMAX=20.145;
+
+function buildGrid(){
+  for(let la=LAMIN;la<LAMAX;la+=STEP){
+    for(let lo=LOMIN;lo<LOMAX;lo+=STEP){
+      const v=idw(la+STEP/2,lo+STEP/2,month);
+      const r=L.rectangle([[la,lo],[la+STEP,lo+STEP]],{
+        color:'transparent',weight:0,
+        fillColor:color(v),fillOpacity:0.74
+      }).addTo(map);
+      r.on('click',()=>pick(la+STEP/2,lo+STEP/2,null,null));
+      cells.push({r,la,lo});
+    }
+  }
+}
+
+function refreshGrid(){
+  cells.forEach(({r,la,lo})=>{
+    const v=idw(la+STEP/2,lo+STEP/2,month);
+    r.setStyle({fillColor:color(v),fillOpacity:0.74});
+  });
+  dotSync();
+}
+
+// ── Station markers ───────────────────────────────────────────────────────────
+function buildMarkers(){
+  STATIONS.forEach(s=>{
+    const v=idw(s.lat,s.lon,month);
+    const st=status(v);
+    const ico=L.divIcon({
+      className:'',
+      html:`<div style="width:11px;height:11px;border-radius:50%;
+             background:${st.col};border:2px solid rgba(255,255,255,0.25);
+             box-shadow:0 0 14px ${st.col}88;cursor:pointer;
+             transition:transform 0.2s" onmouseover="this.style.transform='scale(1.5)'"
+             onmouseout="this.style.transform='scale(1)'"></div>`,
+      iconAnchor:[5,5]
+    });
+    L.marker([s.lat,s.lon],{icon:ico})
+      .addTo(map)
+      .bindPopup(`<b>${s.name}</b><br>${Math.round(idw(s.lat,s.lon,month))} µg/m³ · ${MFULL[month]}`,{maxWidth:180})
+      .on('click',()=>pick(s.lat,s.lon,s.base,s.name));
+  });
+}
+
+// ── Month UI ──────────────────────────────────────────────────────────────────
+function buildMonthGrid(){
+  const g=document.getElementById('mGrid');
+  MNAME.forEach((m,i)=>{
+    const b=document.createElement('button');
+    b.className='mb'+(i===month?' on':'');
+    b.textContent=m;
+    b.onclick=()=>setMonth(i);
+    g.appendChild(b);
+  });
+}
+
+function setMonth(i){
+  month=i;
+  document.querySelectorAll('.mb').forEach((b,j)=>b.classList.toggle('on',j===i));
+  document.getElementById('mpill').textContent=MFULL[i];
+  refreshGrid();
+  if(selBase!==null)renderCard();
+}
+
+// ── Pick ──────────────────────────────────────────────────────────────────────
+function pick(lat,lon,base,name){
+  selLat=lat;selLon=lon;
+  selBase=base!=null?base:idw(lat,lon,month)/MMULT[month];
+  selName=name||nearestName(lat,lon);
+  if(selMarker)map.removeLayer(selMarker);
+  selMarker=L.circleMarker([lat,lon],{
+    radius:9,color:'#fff',weight:2,fillOpacity:0
+  }).addTo(map);
+  renderCard();
+}
+
+function nearestName(lat,lon){
+  let best=PRESETS[0],bd=Infinity;
+  PRESETS.forEach(p=>{
+    const d=Math.hypot(lat-p.lat,lon-p.lon);
+    if(d<bd){bd=d;best=p;}
+  });
+  return bd<0.06?best.addr:`${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`;
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+function renderCard(){
+  const v=selBase*MMULT[month];
+  const st=status(v);
+
+  document.getElementById('ce').style.display='none';
+  const cd=document.getElementById('cd');
+  cd.classList.add('on');
+
+  document.getElementById('cloc').textContent=selName;
+
+  const vEl=document.getElementById('cval');
+  vEl.textContent=Math.round(v);
+  vEl.style.color=st.col;
+
+  const badge=document.getElementById('cbadge');
+  badge.textContent=st.label;
+  badge.style.color=st.col;
+  badge.style.background=st.bg;
+  badge.style.borderColor=st.col+'44';
+
+  // EU limit bar (100 µg/m³ = full scale)
+  const pct=Math.min(v/100,1);
+  const fill=document.getElementById('cfill');
+  fill.style.width=(pct*100)+'%';
+  fill.style.background=st.col;
+  const ratio=Math.round(v/25*100);
+  document.getElementById('cpct').textContent=ratio+'% of 25 µg/m³';
+
+  // Monthly bars
+  const bars=document.getElementById('mbars');
+  bars.innerHTML='';
+  const vals=MMULT.map(m=>selBase*m);
+  const maxV=Math.max(...vals);
+  vals.forEach((mv,i)=>{
+    const s=status(mv);
+    const h=Math.max(Math.round(mv/maxV*58),2);
+    const col=document.createElement('div');
+    col.className='bc'+(i===month?' cur':'');
+    col.innerHTML=`<div class="bf" style="height:${h}px;background:${s.col};opacity:${i===month?1:0.45}"></div>
+                   <div class="bl">${MNAME[i][0]}</div>`;
+    bars.appendChild(col);
+  });
+
+  // Confidence
+  const near=STATIONS.some(s=>Math.hypot(selLat-s.lat,selLon-s.lon)<0.045);
+  const dot=document.getElementById('cdot');
+  const conf=document.getElementById('cconf');
+  if(near){dot.style.background='#22C55E';conf.textContent='Near validated station';}
+  else{dot.style.background='#EAB308';conf.textContent='Interpolated estimate';}
+
+  dotSync(st);
+}
+
+function dotSync(st){
+  if(!st){
+    const v=idw(50.062,19.944,month);
+    st=status(v);
+  }
+  const d=document.getElementById('ldot');
+  d.style.background=st.col;
+  d.style.boxShadow=`0 0 14px ${st.col}`;
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+const siEl=document.getElementById('si');
+const srEl=document.getElementById('sr');
+
+siEl.addEventListener('input',()=>{
+  const q=siEl.value.toLowerCase().trim();
+  if(q.length<2){srEl.style.display='none';return;}
+  const hits=PRESETS.filter(p=>p.addr.toLowerCase().includes(q)).slice(0,5);
+  if(!hits.length){srEl.style.display='none';return;}
+  srEl.innerHTML=hits.map(p=>`
+    <div class="sri" data-lat="${p.lat}" data-lon="${p.lon}" data-base="${p.base}" data-addr="${p.addr}">
+      <div class="sri-main">${p.addr}</div>
+      <div class="sri-sub">Krakow, Poland</div>
+    </div>`).join('');
+  srEl.style.display='block';
+  srEl.querySelectorAll('.sri').forEach(el=>{
+    el.onclick=()=>{
+      siEl.value=el.dataset.addr;
+      srEl.style.display='none';
+      map.flyTo([+el.dataset.lat,+el.dataset.lon],14,{duration:1.2,easeLinearity:0.25});
+      pick(+el.dataset.lat,+el.dataset.lon,+el.dataset.base,el.dataset.addr);
+    };
+  });
+});
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.sb-search'))srEl.style.display='none';
+});
+
+// ── Coord display ─────────────────────────────────────────────────────────────
+let coordTimer;
+function showCoords(lat,lon){
+  const el=document.getElementById('coords');
+  el.textContent=`${lat.toFixed(4)}° N  ${lon.toFixed(4)}° E`;
+  el.style.opacity='1';
+  clearTimeout(coordTimer);
+  coordTimer=setTimeout(()=>el.style.opacity='0',2000);
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportPDF(){toast('PDF export available in the deployed version')}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),2800);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById('landing').addEventListener('click',()=>{
+  document.getElementById('landing').classList.add('out');
+  document.getElementById('app').classList.add('on');
+  setTimeout(initMap,600);
+});
+
+function initMap(){
+  map=L.map('map',{center:[50.055,19.980],zoom:12,zoomControl:false});
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap &copy; CARTO',
+    subdomains:'abcd',maxZoom:19
+  }).addTo(map);
+
+  buildGrid();
+  buildMarkers();
+  buildMonthGrid();
+  document.getElementById('mpill').textContent=MFULL[month];
+  dotSync();
+
+  map.on('click',e=>pick(e.latlng.lat,e.latlng.lng,null,null));
+  map.on('mousemove',e=>showCoords(e.latlng.lat,e.latlng.lng));
+}
+</script>
+</body>
+</html>
