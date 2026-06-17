@@ -388,7 +388,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
     <div class="leg-row"><div class="leg-sw" style="background:#EAB308"></div><div class="leg-lbl">15 – 25 · Moderate</div></div>
     <div class="leg-row"><div class="leg-sw" style="background:#F97316"></div><div class="leg-lbl">25 – 40 · High</div></div>
     <div class="leg-row"><div class="leg-sw" style="background:#EF4444"></div><div class="leg-lbl">40 – 60 · Very High</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#A855F7"></div><div class="leg-lbl">&gt; 60 · Extreme</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#8B0000"></div><div class="leg-lbl">&gt; 60 · Extreme</div></div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -441,7 +441,7 @@ function idw(lat,lon,m){
   return (vs/ws)*MMULT[m];
 }
 
-function color(v,a=0.74){
+function color(v,a=0.62){
   let r,g,b;
   if(v<15){
     const t=v/15;
@@ -454,10 +454,10 @@ function color(v,a=0.74){
     r=249;g=Math.round(122-t*122);b=Math.round(22-t*22);
   }else if(v<60){
     const t=(v-40)/20;
-    r=Math.round(249-t*84);g=0;b=Math.round(t*80);
+    r=Math.round(249-t*84);g=0;b=0;
   }else{
-    const t=Math.min((v-60)/40,1);
-    r=Math.round(165-t*20);g=0;b=Math.round(80+t*167);
+    const t=Math.min((v-60)/50,1);
+    r=Math.round(165-t*55);g=0;b=0;
   }
   return`rgba(${r},${g},${b},${a})`;
 }
@@ -467,7 +467,7 @@ function status(v){
   if(v<25)  return{label:'Moderate',  col:'#EAB308',bg:'rgba(234,179,8,0.13)' };
   if(v<40)  return{label:'High',      col:'#F97316',bg:'rgba(249,115,22,0.13)'};
   if(v<60)  return{label:'Very High', col:'#EF4444',bg:'rgba(239,68,68,0.13)' };
-  return      {label:'Extreme',    col:'#A855F7',bg:'rgba(168,85,247,0.13)'};
+  return      {label:'Extreme',    col:'#8B0000',bg:'rgba(139,0,0,0.18)'};
 }
 
 // ── Grid ──────────────────────────────────────────────────────────────────────
@@ -479,7 +479,7 @@ function buildGrid(){
       const v=idw(la+STEP/2,lo+STEP/2,month);
       const r=L.rectangle([[la,lo],[la+STEP,lo+STEP]],{
         color:'transparent',weight:0,
-        fillColor:color(v),fillOpacity:0.74
+        fillColor:color(v),fillOpacity:0.62
       }).addTo(map);
       r.on('click',()=>pick(la+STEP/2,lo+STEP/2,null,null));
       cells.push({r,la,lo});
@@ -490,7 +490,7 @@ function buildGrid(){
 function refreshGrid(){
   cells.forEach(({r,la,lo})=>{
     const v=idw(la+STEP/2,lo+STEP/2,month);
-    r.setStyle({fillColor:color(v),fillOpacity:0.74});
+    r.setStyle({fillColor:color(v),fillOpacity:0.62});
   });
   dotSync();
 }
@@ -679,8 +679,23 @@ document.getElementById('landing').addEventListener('click',()=>{
 function initMap(){
   map=L.map('map',{center:[50.055,19.980],zoom:12,zoomControl:false});
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  // Base tiles: Voyager (shows buildings + green areas) darkened via pane filter
+  map.createPane('basepane');
+  map.getPane('basepane').style.zIndex=199;
+  map.getPane('basepane').style.filter='brightness(0.30) contrast(1.18) saturate(0.55)';
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',{
+    pane:'basepane',
     attribution:'&copy; OpenStreetMap &copy; CARTO',
+    subdomains:'abcd',maxZoom:19
+  }).addTo(map);
+
+  // Labels rendered on top of PM2.5 grid
+  map.createPane('labelspane');
+  map.getPane('labelspane').style.zIndex=650;
+  map.getPane('labelspane').style.pointerEvents='none';
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',{
+    pane:'labelspane',
+    attribution:'',
     subdomains:'abcd',maxZoom:19
   }).addTo(map);
 
