@@ -418,12 +418,12 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
 
   <!-- Legend -->
   <div class="legend">
-    <div class="leg-title">PM₂.₅ µg/m³</div>
-    <div class="leg-row"><div class="leg-sw" style="background:#22C55E"></div><div class="leg-lbl">&lt; 15 · Clean</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#EAB308"></div><div class="leg-lbl">15 – 25 · Moderate</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#F97316"></div><div class="leg-lbl">25 – 40 · High</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#EF4444"></div><div class="leg-lbl">40 – 60 · Very High</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#8B0000"></div><div class="leg-lbl">&gt; 60 · Extreme</div></div>
+    <div class="leg-title">PM₂.₅ µg/m³ · Krakow scale</div>
+    <div class="leg-row"><div class="leg-sw" style="background:#22C55E"></div><div class="leg-lbl">&lt; 45 · Relatively Low</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#EAB308"></div><div class="leg-lbl">45 – 60 · Elevated</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#F97316"></div><div class="leg-lbl">60 – 75 · High</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#EF4444"></div><div class="leg-lbl">75 – 90 · Very High</div></div>
+    <div class="leg-row"><div class="leg-sw" style="background:#8B0000"></div><div class="leg-lbl">&gt; 90 · Extreme</div></div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -480,33 +480,35 @@ function predIdw(lat,lon,yr,mo){
   return vs/ws;
 }
 
+// Thresholds calibrated to Krakow's actual range (min ~32, max ~123 µg/m³).
+// Even "Relatively Low" is far above EU annual limit of 25 µg/m³.
 function color(v,a=0.62){
   let r,g,b;
-  if(v<15){
-    const t=v/15;
+  if(v<45){
+    const t=v/45;
     r=Math.round(34+t*196);g=Math.round(197-t*28);b=Math.round(94-t*80);
-  }else if(v<25){
-    const t=(v-15)/10;
-    r=Math.round(230+t*15);g=Math.round(169-t*47);b=Math.round(14);
-  }else if(v<40){
-    const t=(v-25)/15;
-    r=249;g=Math.round(122-t*122);b=Math.round(22-t*22);
   }else if(v<60){
-    const t=(v-40)/20;
+    const t=(v-45)/15;
+    r=Math.round(230+t*15);g=Math.round(169-t*47);b=Math.round(14);
+  }else if(v<75){
+    const t=(v-60)/15;
+    r=249;g=Math.round(122-t*122);b=Math.round(22-t*22);
+  }else if(v<90){
+    const t=(v-75)/15;
     r=Math.round(249-t*84);g=0;b=0;
   }else{
-    const t=Math.min((v-60)/50,1);
+    const t=Math.min((v-90)/40,1);
     r=Math.round(165-t*55);g=0;b=0;
   }
   return`rgba(${r},${g},${b},${a})`;
 }
 
 function status(v){
-  if(v<15)  return{label:'Clean',     col:'#22C55E',bg:'rgba(34,197,94,0.13)' };
-  if(v<25)  return{label:'Moderate',  col:'#EAB308',bg:'rgba(234,179,8,0.13)' };
-  if(v<40)  return{label:'High',      col:'#F97316',bg:'rgba(249,115,22,0.13)'};
-  if(v<60)  return{label:'Very High', col:'#EF4444',bg:'rgba(239,68,68,0.13)' };
-  return      {label:'Extreme',    col:'#8B0000',bg:'rgba(139,0,0,0.18)'};
+  if(v<45) return{label:'Relatively Low', col:'#22C55E',bg:'rgba(34,197,94,0.13)' };
+  if(v<60) return{label:'Elevated',       col:'#EAB308',bg:'rgba(234,179,8,0.13)' };
+  if(v<75) return{label:'High',           col:'#F97316',bg:'rgba(249,115,22,0.13)'};
+  if(v<90) return{label:'Very High',      col:'#EF4444',bg:'rgba(239,68,68,0.13)' };
+  return     {label:'Extreme',         col:'#8B0000',bg:'rgba(139,0,0,0.18)'};
 }
 
 // ── Grid ──────────────────────────────────────────────────────────────────────
@@ -616,13 +618,13 @@ function renderCard(){
   badge.style.background=st.bg;
   badge.style.borderColor=st.col+'44';
 
-  // EU limit bar (100 µg/m³ = full scale)
-  const pct=Math.min(v/100,1);
+  // Scale to 130 µg/m³ (Krakow peak range); EU annual limit 25 µg/m³ marked
+  const pct=Math.min(v/130,1);
   const fill=document.getElementById('cfill');
   fill.style.width=(pct*100)+'%';
   fill.style.background=st.col;
   const ratio=Math.round(v/25*100);
-  document.getElementById('cpct').textContent=ratio+'% of 25 µg/m³';
+  document.getElementById('cpct').textContent=ratio+'% of EU 25 µg/m³ limit';
 
   // Monthly bars
   const bars=document.getElementById('mbars');
