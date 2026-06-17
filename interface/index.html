@@ -230,24 +230,28 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
 }
 .exp:hover{background:rgba(255,255,255,0.09);color:#fff}
 
-/* year projection pills */
-.yr-pills{display:flex;gap:6px;margin-top:10px}
-.yr-pill{
-  flex:1;padding:7px 0;border-radius:8px;font-size:11px;font-weight:500;
-  font-family:inherit;cursor:pointer;letter-spacing:0.02em;
-  background:rgba(255,255,255,0.05);
-  border:1px solid var(--border);color:var(--muted);
-  transition:all 0.2s;
+/* year projection slider */
+.yr-row{display:flex;align-items:center;gap:9px;margin-top:11px}
+.yr-cap{font-size:10px;color:var(--muted);flex-shrink:0}
+.yr-val{font-size:12px;font-weight:700;transition:color 0.3s}
+.yr-sl{
+  flex:1;-webkit-appearance:none;appearance:none;
+  height:3px;border-radius:2px;outline:none;cursor:pointer;
+  background:rgba(255,255,255,0.1);
 }
-.yr-pill:hover{background:rgba(255,255,255,0.09);color:#fff}
-.yr-pill.on{
-  background:rgba(255,64,32,0.12);
-  border-color:rgba(255,64,32,0.45);
-  color:#fff;
+.yr-sl::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 10px rgba(255,64,32,0.45);
+  cursor:pointer;transition:transform 0.15s;
+}
+.yr-sl::-webkit-slider-thumb:hover{transform:scale(1.25)}
+.yr-sl::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;border:none;
+  background:var(--accent);cursor:pointer;
 }
 .yr-note{
   font-size:10px;color:var(--muted);
-  margin-top:9px;min-height:14px;font-style:italic;
+  margin-top:8px;min-height:14px;font-style:italic;
 }
 
 /* ── MAP CHROME ──────────────────────────────────────────────────────────────── */
@@ -355,10 +359,11 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
     </div>
 
     <div class="sb-section">
-      <div class="sec-label">Projection</div>
-      <div class="yr-pills">
-        <button class="yr-pill on" id="yrBtn2024" onclick="setYear(2024)">2024 Baseline</button>
-        <button class="yr-pill"    id="yrBtn2030" onclick="setYear(2030)">2030 Climate</button>
+      <div class="sec-label">Year &nbsp;<span class="yr-val" id="yrVal">2024</span></div>
+      <div class="yr-row">
+        <span class="yr-cap">2024</span>
+        <input type="range" class="yr-sl" id="yrSl" min="2024" max="2030" value="2024" step="1">
+        <span class="yr-cap">2030</span>
       </div>
       <div class="yr-note" id="yrNote"></div>
     </div>
@@ -719,16 +724,17 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('on'),2800);
 }
 
-// ── Year projection ───────────────────────────────────────────────────────────
-function setYear(y){
-  year=y;
-  document.getElementById('yrBtn2024').classList.toggle('on',y===2024);
-  document.getElementById('yrBtn2030').classList.toggle('on',y===2030);
+// ── Year slider (2024–2030) ───────────────────────────────────────────────────
+document.getElementById('yrSl').addEventListener('input',e=>{
+  year=+e.target.value;
+  const yvEl=document.getElementById('yrVal');
+  yvEl.textContent=year;
+  yvEl.style.color=year===2024?'var(--text)':'#EAB308';
   document.getElementById('yrNote').textContent=
-    y===2024?'':'ERA5 climate trend · RF model projection';
+    year===2024?'':'ERA5 climate trend · RF model projection';
   refreshGrid();
   if(selLat!==null)renderCard();
-}
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.getElementById('landing').addEventListener('click',()=>{
