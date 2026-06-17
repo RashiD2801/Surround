@@ -277,9 +277,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
   display:flex;flex-direction:column;gap:7px;
 }
 .leg-title{font-size:9px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-.leg-row{display:flex;align-items:center;gap:9px}
-.leg-sw{width:18px;height:7px;border-radius:2px;flex-shrink:0}
-.leg-lbl{font-size:10px;color:rgba(255,255,255,0.55)}
+.leg-bar{
+  height:10px;border-radius:5px;margin:8px 0 4px;
+  background:linear-gradient(to right,
+    rgb(34,197,94),rgb(90,210,55),rgb(160,215,25),
+    rgb(230,195,8),rgb(244,150,14),rgb(249,115,22),
+    rgb(245,70,40),rgb(228,40,40),rgb(188,15,15),rgb(110,0,0));
+}
+.leg-ends{display:flex;justify-content:space-between;margin-bottom:3px}
+.leg-end{font-size:9px;color:var(--muted)}
+.leg-note{font-size:9px;color:rgba(255,255,255,0.22);margin-top:7px;letter-spacing:0.02em}
 
 .coords{
   position:absolute;bottom:26px;left:380px;z-index:400;
@@ -418,12 +425,14 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
 
   <!-- Legend -->
   <div class="legend">
-    <div class="leg-title">PM₂.₅ µg/m³ · Krakow scale</div>
-    <div class="leg-row"><div class="leg-sw" style="background:#22C55E"></div><div class="leg-lbl">&lt; 45 · Relatively Low</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#EAB308"></div><div class="leg-lbl">45 – 60 · Elevated</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#F97316"></div><div class="leg-lbl">60 – 75 · High</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#EF4444"></div><div class="leg-lbl">75 – 90 · Very High</div></div>
-    <div class="leg-row"><div class="leg-sw" style="background:#8B0000"></div><div class="leg-lbl">&gt; 90 · Extreme</div></div>
+    <div class="leg-title">PM₂.₅ µg/m³</div>
+    <div class="leg-bar"></div>
+    <div class="leg-ends">
+      <span class="leg-end" id="legMin">—</span>
+      <span class="leg-end" id="legMid">—</span>
+      <span class="leg-end" id="legMax">—</span>
+    </div>
+    <div class="leg-note" id="legNote">relative to current month</div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -480,27 +489,29 @@ function predIdw(lat,lon,yr,mo){
   return vs/ws;
 }
 
-// Thresholds calibrated to Krakow's actual range (min ~32, max ~123 µg/m³).
-// Even "Relatively Low" is far above EU annual limit of 25 µg/m³.
-function color(v,a=0.62){
-  let r,g,b;
-  if(v<45){
-    const t=v/45;
-    r=Math.round(34+t*196);g=Math.round(197-t*28);b=Math.round(94-t*80);
-  }else if(v<60){
-    const t=(v-45)/15;
-    r=Math.round(230+t*15);g=Math.round(169-t*47);b=Math.round(14);
-  }else if(v<75){
-    const t=(v-60)/15;
-    r=249;g=Math.round(122-t*122);b=Math.round(22-t*22);
-  }else if(v<90){
-    const t=(v-75)/15;
-    r=Math.round(249-t*84);g=0;b=0;
-  }else{
-    const t=Math.min((v-90)/40,1);
-    r=Math.round(165-t*55);g=0;b=0;
-  }
-  return`rgba(${r},${g},${b},${a})`;
+// 10-segment gradient: green → gold → orange → red → maroon
+// Color is normalized relative to current month's min/max so spatial variation is always visible.
+const CSTOPS=[
+  [34,197,94],[90,210,55],[160,215,25],
+  [230,195,8],[244,150,14],[249,115,22],
+  [245,70,40],[228,40,40],[188,15,15],[110,0,0]
+];
+
+function color(v,mn,mx,a=0.62){
+  const t=Math.max(0,Math.min(1,(v-mn)/(mx===mn?1:mx-mn)));
+  const raw=t*(CSTOPS.length-1);
+  const i=Math.min(Math.floor(raw),CSTOPS.length-2);
+  const f=raw-i;
+  const [r0,g0,b0]=CSTOPS[i],[r1,g1,b1]=CSTOPS[i+1];
+  return`rgba(${Math.round(r0+(r1-r0)*f)},${Math.round(g0+(g1-g0)*f)},${Math.round(b0+(b1-b0)*f)},${a})`;
+}
+
+function updateLegend(mn,mx){
+  document.getElementById('legMin').textContent=Math.round(mn)+' µg/m³';
+  document.getElementById('legMid').textContent=Math.round((mn+mx)/2)+' µg/m³';
+  document.getElementById('legMax').textContent=Math.round(mx)+' µg/m³';
+  document.getElementById('legNote').textContent=
+    `relative scale · ${MFULL[month]} ${year}`;
 }
 
 function status(v){
@@ -512,27 +523,31 @@ function status(v){
 }
 
 // ── Grid ──────────────────────────────────────────────────────────────────────
-const STEP=0.013, LAMIN=49.955, LAMAX=50.135, LOMIN=19.820, LOMAX=20.145;
+const STEP=0.005, LAMIN=49.955, LAMAX=50.135, LOMIN=19.820, LOMAX=20.145;
 
 function buildGrid(){
-  for(let la=LAMIN;la<LAMAX;la+=STEP){
-    for(let lo=LOMIN;lo<LOMAX;lo+=STEP){
-      const v=predIdw(la+STEP/2,lo+STEP/2,year,month+1);
-      const r=L.rectangle([[la,lo],[la+STEP,lo+STEP]],{
-        color:'transparent',weight:0,
-        fillColor:color(v),fillOpacity:0.62
-      }).addTo(map);
-      r.on('click',()=>pick(la+STEP/2,lo+STEP/2,null));
-      cells.push({r,la,lo});
-    }
-  }
+  const items=[];
+  for(let la=LAMIN;la<LAMAX;la+=STEP)
+    for(let lo=LOMIN;lo<LOMAX;lo+=STEP)
+      items.push({la,lo,v:predIdw(la+STEP/2,lo+STEP/2,year,month+1)});
+  const vs=items.map(x=>x.v);
+  const mn=Math.min(...vs),mx=Math.max(...vs);
+  items.forEach(({la,lo,v})=>{
+    const r=L.rectangle([[la,lo],[la+STEP,lo+STEP]],{
+      color:'transparent',weight:0,
+      fillColor:color(v,mn,mx),fillOpacity:0.65
+    }).addTo(map);
+    r.on('click',()=>pick(la+STEP/2,lo+STEP/2,null));
+    cells.push({r,la,lo});
+  });
+  updateLegend(mn,mx);
 }
 
 function refreshGrid(){
-  cells.forEach(({r,la,lo})=>{
-    const v=predIdw(la+STEP/2,lo+STEP/2,year,month+1);
-    r.setStyle({fillColor:color(v),fillOpacity:0.62});
-  });
+  const vals=cells.map(({la,lo})=>predIdw(la+STEP/2,lo+STEP/2,year,month+1));
+  const mn=Math.min(...vals),mx=Math.max(...vals);
+  cells.forEach(({r},i)=>r.setStyle({fillColor:color(vals[i],mn,mx),fillOpacity:0.65}));
+  updateLegend(mn,mx);
   dotSync();
 }
 
