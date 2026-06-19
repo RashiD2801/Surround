@@ -214,6 +214,15 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
 .bc.cur .bl{color:#fff}
 .bc.cur .bf{opacity:1 !important}
 
+/* actions */
+.ca{padding:14px 22px 12px;border-top:1px solid var(--border);flex-shrink:0}
+.ca-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.ca-title{font-size:8px;font-weight:700;letter-spacing:0.18em;color:var(--muted)}
+.ca-badge{font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.06em}
+.ca-items{display:flex;flex-direction:column;gap:5px}
+.ca-item{font-size:10.5px;color:rgba(255,255,255,0.75);display:flex;align-items:flex-start;gap:7px;line-height:1.3}
+.ca-arr{color:var(--accent);font-size:9px;flex-shrink:0;margin-top:2px}
+
 /* footer */
 .cf{
   padding:12px 22px;border-top:1px solid var(--border);
@@ -407,6 +416,14 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
           <div class="monthly" id="mbars"></div>
         </div>
 
+        <div class="ca">
+          <div class="ca-head">
+            <div class="ca-title">ACTIONS</div>
+            <div class="ca-badge" id="ca-badge">—</div>
+          </div>
+          <div class="ca-items" id="ca-items"></div>
+        </div>
+
         <div class="cf">
           <div class="cfd">
             <div class="cfd-dot" id="cdot"></div>
@@ -467,6 +484,66 @@ const PRESETS = [
   {addr:'Śródmieście',           lat:50.0618, lon:19.9400, base:31},
   {addr:'Prądnik Czerwony',      lat:50.0889, lon:19.9600, base:28},
 ];
+
+// ── Neighbourhood → intervention table ───────────────────────────────────────
+const HOOD_TYPE={
+  ul_dietla:'centre', zloty_rog:'centre',
+  aleja_krasinskiego:'arterial',
+  kurdwanow:'residential',
+  nowa_huta:'industrial',
+  os_piastow:'estates', os_wadow:'estates',
+};
+// [neighbourhood][severity 0-3] → 3 × 4-5-word suggestions
+const ACT={
+  centre:[
+    ['Widen pedestrian zones now','Green façade grant scheme','Smart congestion pricing install'],
+    ['Enforce low-emission zone','Electrify city deliveries now','Retrofit canyon ventilation'],
+    ['Close diesel streets daily','Emergency boiler audit blitz','Ban wood-burning stoves'],
+    ['Winter diesel ban enforce','Mandatory clean heating now','Smog closure protocol activate'],
+  ],
+  arterial:[
+    ['Plant roadside filter trees','Extend cycle superhighway here','Lower speed limits trial'],
+    ['EV bus priority lane','Daytime heavy truck ban','Deploy roadside air sensors'],
+    ['Expand congestion charge zone','Mandate green buffer barrier','Freight weight cap now'],
+    ['Emergency freight reroute now','Enforce EV delivery zone','Close to through-traffic'],
+  ],
+  residential:[
+    ['Insulate old housing stock','Heat pump awareness drive','Connect cycle routes here'],
+    ['Subsidise heat pump swap','Door-to-door boiler survey','Extend district heating grid'],
+    ['Mandatory boiler inspection now','Enforce no-burn weekdays','Crisis heating grant push'],
+    ['Emergency boiler replacement now','Enforce solid fuel ban','Deploy heating alternatives fast'],
+  ],
+  industrial:[
+    ['Tighten stack emission caps','Plant eastern green buffer','Add fence-line sensors'],
+    ['Install fence-line monitors now','Incentivise clean production','Capture industrial waste heat'],
+    ['Continuous stack emissions audit','Mandate green energy switch','Enforce eastern buffer zone'],
+    ['Trigger production pause protocol','Emergency industrial site audit','Bond pollution liability now'],
+  ],
+  estates:[
+    ['Protect western forest edge','Extend bike lanes west','Ban garden waste burns'],
+    ['Monitor biogenic VOC levels','Push A4 lorry limits','Plant native woodland strips'],
+    ['Cap western freight volume','Enforce no forest burns','Install stagnation early warning'],
+    ['Cap western road entry','Emergency forest buffer zone','Launch biogenic VOC audit'],
+  ],
+};
+function getActions(lat,lon,v,mo){
+  const ns=STATIONS.reduce((a,b)=>
+    (lat-a.lat)**2+((lon-a.lon)*0.64)**2 < (lat-b.lat)**2+((lon-b.lon)*0.64)**2 ? a : b
+  );
+  const hood=HOOD_TYPE[ns.id]||'residential';
+  const sev=v<50?0:v<70?1:v<90?2:3;
+  const delta=predIdw(lat,lon,2030,mo)-predIdw(lat,lon,2024,mo);
+  const trend=delta>4?'worsening':delta<-4?'improving':'stable';
+  let label,lc,lbg;
+  if(trend==='worsening'&&sev===3){label='CRITICAL ↑↑';lc='#f87171';lbg='rgba(239,68,68,0.13)';}
+  else if(trend==='worsening')    {label='URGENT ↑';   lc='#fb923c';lbg='rgba(251,146,60,0.13)';}
+  else if(sev===3)                {label='ELEVATED';   lc='#fbbf24';lbg='rgba(251,191,36,0.11)';}
+  else if(sev===2)                {label='PRIORITY';   lc='#facc15';lbg='rgba(250,204,21,0.11)';}
+  else if(trend==='improving')    {label='IMPROVING ↓';lc='#4ade80';lbg='rgba(34,197,94,0.11)';}
+  else if(sev===1)                {label='MODERATE';   lc='#94a3b8';lbg='rgba(148,163,184,0.10)';}
+  else                            {label='MAINTAIN';   lc='rgba(255,255,255,0.3)';lbg='rgba(255,255,255,0.05)';}
+  return{s:(ACT[hood]||ACT.residential)[sev],label,lc,lbg};
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let month = new Date().getMonth();
@@ -662,6 +739,13 @@ function renderCard(){
   const projLabel=year===2024?'RF model · ERA5 baseline':'ERA5 climate trend · '+year+' projection';
   if(near){dot.style.background='#22C55E';conf.textContent=projLabel+' · validated station';}
   else{dot.style.background='#EAB308';conf.textContent=projLabel+' · IDW interpolated';}
+
+  // Actions
+  const act=getActions(selLat,selLon,v,month+1);
+  const cab=document.getElementById('ca-badge');
+  cab.textContent=act.label; cab.style.color=act.lc; cab.style.background=act.lbg;
+  document.getElementById('ca-items').innerHTML=act.s
+    .map(t=>`<div class="ca-item"><span class="ca-arr">→</span>${t}</div>`).join('');
 
   dotSync(st);
 }
