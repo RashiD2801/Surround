@@ -173,61 +173,70 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
 }
 .ce-text{font-size:12px;text-align:center;line-height:1.7;color:var(--muted)}
 
-.card-data{display:none;flex-direction:column;height:100%}
-.card-data.on{display:flex}
+.card-data{display:none;flex-direction:column;flex:1;min-height:0}
+.card-data.on{display:flex;overflow-y:auto}
 
 /* card header */
 .ch{
-  padding:20px 22px 18px;
+  padding:14px 22px 12px;
   border-bottom:1px solid var(--border);
   flex-shrink:0;
 }
 .ch-loc{
   font-size:10px;font-weight:500;letter-spacing:0.1em;
   text-transform:uppercase;color:var(--muted);
-  margin-bottom:8px;
+  margin-bottom:5px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .ch-row{display:flex;align-items:flex-end;gap:6px}
-.ch-val{font-size:62px;font-weight:900;line-height:1;transition:color 0.4s}
-.ch-unit{font-size:13px;font-weight:300;color:var(--muted);margin-bottom:9px}
+.ch-val{font-size:48px;font-weight:900;line-height:1;transition:color 0.4s}
+.ch-unit{font-size:12px;font-weight:300;color:var(--muted);margin-bottom:7px}
 .ch-badge{
-  margin-left:auto;margin-bottom:8px;
+  margin-left:auto;margin-bottom:6px;
   padding:4px 11px;border-radius:20px;
   font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
   border:1px solid transparent;transition:all 0.4s;
 }
 
 /* EU bar */
-.cl{padding:12px 22px;border-bottom:1px solid var(--border);flex-shrink:0}
-.cl-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:7px}
+.cl{padding:9px 22px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cl-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:6px}
 .cl-bg{height:3px;border-radius:2px;background:rgba(255,255,255,0.07);position:relative}
 .cl-fill{height:100%;border-radius:2px;max-width:100%;transition:width 0.7s cubic-bezier(0.4,0,0.2,1),background 0.4s}
 .cl-mark{position:absolute;top:-5px;width:1.5px;height:13px;background:rgba(255,255,255,0.22);border-radius:1px}
 
 /* monthly chart */
-.cc{padding:16px 22px 14px;flex-shrink:0}
-.monthly{display:flex;gap:3px;align-items:flex-end;height:68px;margin-top:10px}
-.bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.cc{padding:10px 22px 10px;flex-shrink:0}
+.monthly{display:flex;gap:3px;align-items:flex-end;height:50px;margin-top:8px}
+.bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end}
 .bf{width:100%;border-radius:2px 2px 0 0;transition:height 0.55s cubic-bezier(0.4,0,0.2,1),background 0.4s;min-height:2px}
 .bl{font-size:9px;color:var(--muted);font-weight:500;flex-shrink:0}
 .bc.cur .bl{color:#fff}
 .bc.cur .bf{opacity:1 !important}
 
-/* actions */
-.ca{padding:14px 22px 12px;border-top:1px solid var(--border);flex-shrink:0}
-.ca-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
-.ca-title{font-size:8px;font-weight:700;letter-spacing:0.18em;color:var(--muted)}
-.ca-badge{font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.06em}
-.ca-items{display:flex;flex-direction:column;gap:5px}
-.ca-item{font-size:10.5px;color:rgba(255,255,255,0.75);display:flex;align-items:flex-start;gap:7px;line-height:1.3}
-.ca-arr{color:var(--accent);font-size:9px;flex-shrink:0;margin-top:2px}
+/* neighbourhood analysis panel */
+.cn{padding:12px 22px 10px;border-top:1px solid var(--border);border-left:3px solid transparent;flex-shrink:0;transition:border-left-color 0.4s}
+.cn-lbl{font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--muted);margin-bottom:5px}
+.cn-type{font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;margin-bottom:8px;line-height:1.15}
+.cn-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.cn-tag{font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);color:rgba(255,255,255,0.55)}
+.cn-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cn-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10.5px;font-weight:700;letter-spacing:0.04em}
+.cn-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* actions - prominent */
+.ca{padding:12px 22px 14px;border-top:1px solid var(--border);flex-shrink:0}
+.ca-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ca-title{font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--muted)}
+.ca-badge{font-size:10.5px;font-weight:700;padding:4px 12px;border-radius:10px;letter-spacing:0.05em}
+.ca-items{display:flex;flex-direction:column;gap:7px}
+.ca-item{font-size:12px;color:rgba(255,255,255,0.85);display:flex;align-items:flex-start;gap:9px;line-height:1.35}
+.ca-arr{color:var(--accent);font-size:11px;flex-shrink:0;margin-top:2px;font-weight:700}
 
 /* footer */
 .cf{
-  padding:12px 22px;border-top:1px solid var(--border);
+  padding:9px 22px;border-top:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
-  margin-top:auto;
 }
 .cfd{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
 .cfd-dot{width:6px;height:6px;border-radius:50%;transition:background 0.4s}
@@ -416,6 +425,19 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,s
           <div class="monthly" id="mbars"></div>
         </div>
 
+        <div class="cn" id="cn-sect">
+          <div class="cn-lbl">NEIGHBOURHOOD</div>
+          <div class="cn-type" id="cn-type">—</div>
+          <div class="cn-tags" id="cn-tags"></div>
+          <div class="cn-row">
+            <div class="cn-pill" id="cn-poll">
+              <span class="cn-dot" id="cn-dot"></span>
+              <span id="cn-poll-lbl">—</span>
+            </div>
+            <div class="cn-pill" id="cn-trend">—</div>
+          </div>
+        </div>
+
         <div class="ca">
           <div class="ca-head">
             <div class="ca-title">ACTIONS</div>
@@ -485,15 +507,51 @@ const PRESETS = [
   {addr:'Prądnik Czerwony',      lat:50.0889, lon:19.9600, base:28},
 ];
 
-// ── Neighbourhood → intervention table ───────────────────────────────────────
-const HOOD_TYPE={
-  ul_dietla:'centre', zloty_rog:'centre',
-  aleja_krasinskiego:'arterial',
-  kurdwanow:'residential',
-  nowa_huta:'industrial',
-  os_piastow:'estates', os_wadow:'estates',
+// ── Land use IDW for neighbourhood classification ─────────────────────────────
+const LUSE={
+  aleja_krasinskiego:{cu:0.136,du:0.148,ind:0.156,grn:0.560,agr:0.000,fst:0.000},
+  kurdwanow:         {cu:0.171,du:0.399,ind:0.158,grn:0.058,agr:0.183,fst:0.000},
+  nowa_huta:         {cu:0.224,du:0.116,ind:0.232,grn:0.374,agr:0.053,fst:0.000},
+  os_piastow:        {cu:0.000,du:0.056,ind:0.016,grn:0.088,agr:0.522,fst:0.317},
+  os_wadow:          {cu:0.436,du:0.127,ind:0.303,grn:0.134,agr:0.000,fst:0.000},
+  ul_dietla:         {cu:0.550,du:0.000,ind:0.337,grn:0.113,agr:0.000,fst:0.000},
+  zloty_rog:         {cu:0.383,du:0.000,ind:0.497,grn:0.107,agr:0.000,fst:0.000},
 };
-// [neighbourhood][severity 0-3] → 3 × 4-5-word suggestions
+const LUSE_LABELS={cu:'Continuous urban',du:'Residential',ind:'Roads & industry',grn:'Parks & green',agr:'Agriculture',fst:'Forest'};
+
+function luseIdw(lat,lon){
+  const keys=['cu','du','ind','grn','agr','fst'];
+  let ws=0;
+  const acc={cu:0,du:0,ind:0,grn:0,agr:0,fst:0};
+  STATIONS.forEach(s=>{
+    const d2=(lat-s.lat)**2+((lon-s.lon)*0.64)**2;
+    const w=1/(d2+0.00004);
+    ws+=w;
+    keys.forEach(k=>acc[k]+=w*(LUSE[s.id]?.[k]??0));
+  });
+  keys.forEach(k=>acc[k]/=ws);
+  return acc;
+}
+
+function classifyHood(c){
+  if(c.fst>0.12) return{type:'forest',    label:'Forest & Natural Edge',    accent:'#22c55e'};
+  if(c.agr>0.25) return{type:'peri-urban',label:'Peri-Urban Agricultural',  accent:'#fbbf24'};
+  if(c.grn>0.32) return{type:'parkside',  label:'Park-Side Urban',           accent:'#4ade80'};
+  if(c.cu>0.40)  return{type:'centre',    label:'Dense Urban Core',          accent:'#ff4020'};
+  if(c.du>0.28&&c.cu<0.22) return{type:'residential',label:'Residential Suburb',accent:'#60a5fa'};
+  if(c.ind>0.35) return{type:'industrial',label:'Industrial Corridor',       accent:'#a78bfa'};
+  return{type:'mixed',label:'Mixed Urban',accent:'rgba(255,255,255,0.25)'};
+}
+
+function topCats(cats){
+  return Object.entries(cats)
+    .filter(([,v])=>v>0.08)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,3)
+    .map(([k,v])=>({label:LUSE_LABELS[k]||k,pct:Math.round(v*100)}));
+}
+
+// [neighbourhood type][severity 0–3] → 3 × 4-5-word suggestions
 const ACT={
   centre:[
     ['Widen pedestrian zones now','Green façade grant scheme','Smart congestion pricing install'],
@@ -501,11 +559,11 @@ const ACT={
     ['Close diesel streets daily','Emergency boiler audit blitz','Ban wood-burning stoves'],
     ['Winter diesel ban enforce','Mandatory clean heating now','Smog closure protocol activate'],
   ],
-  arterial:[
-    ['Plant roadside filter trees','Extend cycle superhighway here','Lower speed limits trial'],
-    ['EV bus priority lane','Daytime heavy truck ban','Deploy roadside air sensors'],
-    ['Expand congestion charge zone','Mandate green buffer barrier','Freight weight cap now'],
-    ['Emergency freight reroute now','Enforce EV delivery zone','Close to through-traffic'],
+  parkside:[
+    ['Expand park pedestrian access','Ban engine-idling here','Add green corridor link'],
+    ['Restrict park-edge traffic now','Boost active travel routes','Urban forest canopy expand'],
+    ['Close road through green zone','Air quality monitors install','Car-free zone extend now'],
+    ['Emergency park closure order','Mandate car-free perimeter','Critical green zone enforce'],
   ],
   residential:[
     ['Insulate old housing stock','Heat pump awareness drive','Connect cycle routes here'],
@@ -514,35 +572,44 @@ const ACT={
     ['Emergency boiler replacement now','Enforce solid fuel ban','Deploy heating alternatives fast'],
   ],
   industrial:[
-    ['Tighten stack emission caps','Plant eastern green buffer','Add fence-line sensors'],
+    ['Tighten stack emission caps','Plant green buffer strip','Add fence-line sensors'],
     ['Install fence-line monitors now','Incentivise clean production','Capture industrial waste heat'],
-    ['Continuous stack emissions audit','Mandate green energy switch','Enforce eastern buffer zone'],
+    ['Continuous stack emissions audit','Mandate green energy switch','Enforce buffer zone now'],
     ['Trigger production pause protocol','Emergency industrial site audit','Bond pollution liability now'],
   ],
-  estates:[
-    ['Protect western forest edge','Extend bike lanes west','Ban garden waste burns'],
-    ['Monitor biogenic VOC levels','Push A4 lorry limits','Plant native woodland strips'],
-    ['Cap western freight volume','Enforce no forest burns','Install stagnation early warning'],
+  forest:[
+    ['Protect forest edge now','Extend bike lanes west','Ban garden waste burns'],
+    ['Monitor biogenic VOC levels','Restrict road freight here','Plant native woodland strips'],
+    ['Cap freight volume here','No forest-edge burn rule','Install stagnation early warning'],
     ['Cap western road entry','Emergency forest buffer zone','Launch biogenic VOC audit'],
   ],
+  'peri-urban':[
+    ['Support clean farm practices','Promote agri-environment scheme','Protect remaining green belt'],
+    ['Ban field burning now','Monitor agricultural emissions','Rewild unused farm strips'],
+    ['Strict harvest burn controls','Incentivise organic transition','Plant air quality buffer'],
+    ['Emergency agricultural audit','Zero-burn field mandate','Green belt protection order'],
+  ],
+  mixed:[
+    ['Green space access improve','Add EV charging point','Deploy local air sensor'],
+    ['Low traffic neighbourhood push','Improve walking routes here','Plant street tree canopy'],
+    ['Restrict through-traffic now','Extend district heating here','Emergency boiler survey launch'],
+    ['Critical intervention package','Enforce emission-free zone','Mandatory air quality plan'],
+  ],
 };
-function getActions(lat,lon,v,mo){
-  const ns=STATIONS.reduce((a,b)=>
-    (lat-a.lat)**2+((lon-a.lon)*0.64)**2 < (lat-b.lat)**2+((lon-b.lon)*0.64)**2 ? a : b
-  );
-  const hood=HOOD_TYPE[ns.id]||'residential';
+
+function getActions(hoodType,v,lat,lon,mo){
   const sev=v<50?0:v<70?1:v<90?2:3;
   const delta=predIdw(lat,lon,2030,mo)-predIdw(lat,lon,2024,mo);
   const trend=delta>4?'worsening':delta<-4?'improving':'stable';
   let label,lc,lbg;
-  if(trend==='worsening'&&sev===3){label='CRITICAL ↑↑';lc='#f87171';lbg='rgba(239,68,68,0.13)';}
-  else if(trend==='worsening')    {label='URGENT ↑';   lc='#fb923c';lbg='rgba(251,146,60,0.13)';}
-  else if(sev===3)                {label='ELEVATED';   lc='#fbbf24';lbg='rgba(251,191,36,0.11)';}
-  else if(sev===2)                {label='PRIORITY';   lc='#facc15';lbg='rgba(250,204,21,0.11)';}
-  else if(trend==='improving')    {label='IMPROVING ↓';lc='#4ade80';lbg='rgba(34,197,94,0.11)';}
-  else if(sev===1)                {label='MODERATE';   lc='#94a3b8';lbg='rgba(148,163,184,0.10)';}
-  else                            {label='MAINTAIN';   lc='rgba(255,255,255,0.3)';lbg='rgba(255,255,255,0.05)';}
-  return{s:(ACT[hood]||ACT.residential)[sev],label,lc,lbg};
+  if(trend==='worsening'&&sev===3){label='CRITICAL ↑↑';lc='#f87171';lbg='rgba(239,68,68,0.15)';}
+  else if(trend==='worsening')    {label='URGENT ↑';   lc='#fb923c';lbg='rgba(251,146,60,0.15)';}
+  else if(sev===3)                {label='ELEVATED';   lc='#fbbf24';lbg='rgba(251,191,36,0.13)';}
+  else if(sev===2)                {label='PRIORITY';   lc='#facc15';lbg='rgba(250,204,21,0.13)';}
+  else if(trend==='improving')    {label='IMPROVING ↓';lc='#4ade80';lbg='rgba(34,197,94,0.13)';}
+  else if(sev===1)                {label='MODERATE';   lc='#94a3b8';lbg='rgba(148,163,184,0.12)';}
+  else                            {label='MAINTAIN';   lc='rgba(255,255,255,0.3)';lbg='rgba(255,255,255,0.06)';}
+  return{s:(ACT[hoodType]||ACT.mixed)[sev],label,lc,lbg};
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -724,7 +791,7 @@ function renderCard(){
   const maxV=Math.max(...vals);
   vals.forEach((mv,i)=>{
     const s=status(mv);
-    const h=Math.max(Math.round(mv/maxV*58),2);
+    const h=Math.max(Math.round(mv/maxV*40),2);
     const col=document.createElement('div');
     col.className='bc'+(i===month?' cur':'');
     col.innerHTML=`<div class="bf" style="height:${h}px;background:${s.col};opacity:${i===month?1:0.45}"></div>
@@ -740,8 +807,31 @@ function renderCard(){
   if(near){dot.style.background='#22C55E';conf.textContent=projLabel+' · validated station';}
   else{dot.style.background='#EAB308';conf.textContent=projLabel+' · IDW interpolated';}
 
+  // Neighbourhood analysis
+  const cats=luseIdw(selLat,selLon);
+  const hood=classifyHood(cats);
+  const tops=topCats(cats);
+  const cnSect=document.getElementById('cn-sect');
+  cnSect.style.borderLeftColor=hood.accent;
+  document.getElementById('cn-type').textContent=hood.label;
+  document.getElementById('cn-tags').innerHTML=
+    tops.map(t=>`<span class="cn-tag">${t.pct}% ${t.label}</span>`).join('');
+  const pollPill=document.getElementById('cn-poll');
+  pollPill.style.color=st.col;
+  pollPill.style.background=st.bg;
+  document.getElementById('cn-dot').style.background=st.col;
+  document.getElementById('cn-poll-lbl').textContent=st.label;
+  const delta30=predIdw(selLat,selLon,2030,month+1)-predIdw(selLat,selLon,2024,month+1);
+  const trendLbl=delta30>4?'↑ WORSENING':delta30<-4?'↓ IMPROVING':'→ STABLE';
+  const trendCol=delta30>4?'#f87171':delta30<-4?'#4ade80':'#94a3b8';
+  const trendBg=delta30>4?'rgba(239,68,68,0.12)':delta30<-4?'rgba(34,197,94,0.12)':'rgba(148,163,184,0.10)';
+  const trendPill=document.getElementById('cn-trend');
+  trendPill.textContent=trendLbl;
+  trendPill.style.color=trendCol;
+  trendPill.style.background=trendBg;
+
   // Actions
-  const act=getActions(selLat,selLon,v,month+1);
+  const act=getActions(hood.type,v,selLat,selLon,month+1);
   const cab=document.getElementById('ca-badge');
   cab.textContent=act.label; cab.style.color=act.lc; cab.style.background=act.lbg;
   document.getElementById('ca-items').innerHTML=act.s
