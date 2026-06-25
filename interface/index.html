@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surround</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,900;1,14..32,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#070707;
+  --panel:rgba(8,8,8,0.93);
+  --border:rgba(255,255,255,0.07);
+  --text:#fff;
+  --muted:rgba(255,255,255,0.38);
+  --accent:#FF4020;
+}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text)}
+
+/* ── LANDING ────────────────────────────────────────────────────────────────── */
+#landing{
+  position:fixed;inset:0;z-index:1000;
+  display:flex;align-items:center;justify-content:center;
+  background:#060606;cursor:pointer;
+  transition:opacity 0.9s cubic-bezier(0.4,0,0.2,1);
+}
+#landing.out{opacity:0;pointer-events:none}
+
+.dot-grid{
+  position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,0.04) 1px,transparent 1px);
+  background-size:36px 36px;
+  pointer-events:none;
+}
+
+.blob{position:absolute;border-radius:50%;filter:blur(110px);pointer-events:none}
+.b1{width:700px;height:700px;background:radial-gradient(circle,#FF2200 0%,transparent 70%);
+    opacity:0.13;top:-15%;left:-12%;animation:drift1 22s ease-in-out infinite}
+.b2{width:560px;height:560px;background:radial-gradient(circle,#FF7700 0%,transparent 70%);
+    opacity:0.10;bottom:-18%;right:-8%;animation:drift2 28s ease-in-out infinite}
+.b3{width:440px;height:440px;background:radial-gradient(circle,#5500CC 0%,transparent 70%);
+    opacity:0.12;top:28%;right:18%;animation:drift3 18s ease-in-out infinite}
+
+@keyframes drift1{0%,100%{transform:translate(0,0)}33%{transform:translate(50px,-40px)}66%{transform:translate(-30px,50px)}}
+@keyframes drift2{0%,100%{transform:translate(0,0)}40%{transform:translate(-60px,30px)}70%{transform:translate(40px,-50px)}}
+@keyframes drift3{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,60px)}}
+
+.lc{position:relative;text-align:center;user-select:none}
+
+.lt{
+  font-size:clamp(80px,14vw,172px);font-weight:900;
+  letter-spacing:-0.05em;line-height:0.88;
+  color:#fff;
+  animation:up 1.1s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.ls{
+  margin-top:22px;font-size:15px;font-weight:300;
+  color:rgba(255,255,255,0.4);letter-spacing:0.015em;
+  animation:up 1.1s cubic-bezier(0.16,1,0.3,1) 0.25s both;
+}
+
+.le{
+  margin-top:72px;font-size:10px;font-weight:500;
+  letter-spacing:0.24em;text-transform:uppercase;
+  color:rgba(255,255,255,0.18);
+  animation:up 1.1s cubic-bezier(0.16,1,0.3,1) 0.5s both,
+             blink 2.4s ease 1.6s infinite;
+}
+
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:0.18}50%{opacity:0.4}}
+
+/* ── APP ────────────────────────────────────────────────────────────────────── */
+#app{
+  position:fixed;inset:0;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.8s cubic-bezier(0.4,0,0.2,1) 0.2s;
+}
+#app.on{opacity:1;pointer-events:all}
+#map{position:absolute;inset:0}
+
+/* ── SIDEBAR ────────────────────────────────────────────────────────────────── */
+.sb{
+  position:absolute;top:0;left:0;bottom:0;width:360px;z-index:500;
+  background:var(--panel);
+  backdrop-filter:blur(28px) saturate(160%);
+  -webkit-backdrop-filter:blur(28px) saturate(160%);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:0;
+  overflow:hidden;
+}
+
+.sb-logo{
+  padding:26px 24px 22px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.logo-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 14px var(--accent);
+  transition:background 0.5s,box-shadow 0.5s;
+  flex-shrink:0;
+}
+.logo-name{font-size:12px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase}
+.logo-loc{font-size:10px;font-weight:400;color:var(--muted);margin-left:auto;letter-spacing:0.04em}
+
+/* month section */
+.sb-section{padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sec-label{font-size:9px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+
+.months{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.mb{
+  height:30px;border-radius:6px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);
+  color:var(--muted);font-size:11px;font-weight:500;
+  font-family:inherit;cursor:pointer;
+  transition:all 0.18s;
+}
+.mb:hover{background:rgba(255,255,255,0.09);color:#fff}
+.mb.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 18px rgba(255,64,32,0.35)}
+
+/* search */
+.sb-search{padding:16px 24px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative}
+.si{
+  width:100%;height:42px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:#fff;font-family:inherit;font-size:13px;
+  padding:0 40px 0 14px;outline:none;
+  transition:border-color 0.2s,background 0.2s;
+}
+.si::placeholder{color:var(--muted)}
+.si:focus{border-color:rgba(255,255,255,0.18);background:rgba(255,255,255,0.08)}
+.si-icon{position:absolute;right:38px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.sr{
+  position:absolute;top:calc(100% - 16px + 4px);left:24px;right:24px;
+  background:#111;border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;z-index:10;display:none;
+}
+.sri{
+  padding:11px 14px;font-size:12px;cursor:pointer;
+  border-bottom:1px solid var(--border);transition:background 0.15s;
+}
+.sri:last-child{border-bottom:none}
+.sri:hover{background:rgba(255,255,255,0.06)}
+.sri-main{color:#fff;font-weight:500}
+.sri-sub{color:var(--muted);font-size:10px;margin-top:2px}
+
+/* card */
+.sb-card{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;
+}
+
+.card-empty{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  color:var(--muted);padding:32px;
+}
+.ce-ring{
+  width:52px;height:52px;border-radius:50%;
+  border:1.5px dashed rgba(255,255,255,0.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;opacity:0.5;
+}
+.ce-text{font-size:12px;text-align:center;line-height:1.7;color:var(--muted)}
+
+.card-data{display:none;flex-direction:column;flex:1;min-height:0}
+.card-data.on{display:flex;overflow-y:auto}
+
+/* card header */
+.ch{
+  padding:14px 22px 12px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.ch-loc{
+  font-size:10px;font-weight:500;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ch-row{display:flex;align-items:flex-end;gap:6px}
+.ch-val{font-size:48px;font-weight:900;line-height:1;transition:color 0.4s}
+.ch-unit{font-size:12px;font-weight:300;color:var(--muted);margin-bottom:7px}
+.ch-badge{
+  margin-left:auto;margin-bottom:6px;
+  padding:4px 11px;border-radius:20px;
+  font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+  border:1px solid transparent;transition:all 0.4s;
+}
+
+/* EU bar */
+.cl{padding:9px 22px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cl-top{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:6px}
+.cl-bg{height:3px;border-radius:2px;background:rgba(255,255,255,0.07);position:relative}
+.cl-fill{height:100%;border-radius:2px;max-width:100%;transition:width 0.7s cubic-bezier(0.4,0,0.2,1),background 0.4s}
+.cl-mark{position:absolute;top:-5px;width:1.5px;height:13px;background:rgba(255,255,255,0.22);border-radius:1px}
+
+/* monthly chart */
+.cc{padding:10px 22px 10px;flex-shrink:0}
+.monthly{display:flex;gap:3px;align-items:flex-end;height:50px;margin-top:8px}
+.bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end}
+.bf{width:100%;border-radius:2px 2px 0 0;transition:height 0.55s cubic-bezier(0.4,0,0.2,1),background 0.4s;min-height:2px}
+.bl{font-size:9px;color:var(--muted);font-weight:500;flex-shrink:0}
+.bc.cur .bl{color:#fff}
+.bc.cur .bf{opacity:1 !important}
+
+/* neighbourhood analysis panel */
+.cn{padding:12px 22px 10px;border-top:1px solid var(--border);border-left:3px solid transparent;flex-shrink:0;transition:border-left-color 0.4s}
+.cn-lbl{font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--muted);margin-bottom:5px}
+.cn-type{font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;margin-bottom:8px;line-height:1.15}
+.cn-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.cn-tag{font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);color:rgba(255,255,255,0.55)}
+.cn-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cn-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10.5px;font-weight:700;letter-spacing:0.04em}
+.cn-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* actions - prominent */
+.ca{padding:12px 22px 14px;border-top:1px solid var(--border);flex-shrink:0}
+.ca-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ca-title{font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--muted)}
+.ca-badge{font-size:10.5px;font-weight:700;padding:4px 12px;border-radius:10px;letter-spacing:0.05em}
+.ca-items{display:flex;flex-direction:column;gap:7px}
+.ca-item{font-size:12px;color:rgba(255,255,255,0.85);display:flex;align-items:flex-start;gap:9px;line-height:1.35}
+.ca-arr{color:var(--accent);font-size:11px;flex-shrink:0;margin-top:2px;font-weight:700}
+
+/* footer */
+.cf{
+  padding:9px 22px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.cfd{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+.cfd-dot{width:6px;height:6px;border-radius:50%;transition:background 0.4s}
+.exp{
+  padding:6px 13px;border-radius:6px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  color:rgba(255,255,255,0.5);font-size:10px;font-weight:500;
+  font-family:inherit;cursor:pointer;transition:all 0.18s;letter-spacing:0.02em;
+}
+.exp:hover{background:rgba(255,255,255,0.09);color:#fff}
+
+/* year projection slider */
+.yr-row{display:flex;align-items:center;gap:9px;margin-top:11px}
+.yr-cap{font-size:10px;color:var(--muted);flex-shrink:0}
+.yr-val{font-size:12px;font-weight:700;transition:color 0.3s}
+.yr-sl{
+  flex:1;-webkit-appearance:none;appearance:none;
+  height:3px;border-radius:2px;outline:none;cursor:pointer;
+  background:rgba(255,255,255,0.1);
+}
+.yr-sl::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 10px rgba(255,64,32,0.45);
+  cursor:pointer;transition:transform 0.15s;
+}
+.yr-sl::-webkit-slider-thumb:hover{transform:scale(1.25)}
+.yr-sl::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;border:none;
+  background:var(--accent);cursor:pointer;
+}
+.yr-note{
+  font-size:10px;color:var(--muted);
+  margin-top:8px;min-height:14px;font-style:italic;
+}
+
+/* ── MAP CHROME ──────────────────────────────────────────────────────────────── */
+.month-pill{
+  position:absolute;top:20px;left:50%;transform:translateX(-50%);
+  z-index:400;pointer-events:none;
+  background:rgba(8,8,8,0.88);
+  backdrop-filter:blur(16px);
+  border:1px solid var(--border);
+  border-radius:20px;padding:7px 22px;
+  font-size:12px;font-weight:600;letter-spacing:0.05em;
+  white-space:nowrap;
+  transition:opacity 0.3s;
+}
+
+.legend{
+  position:absolute;bottom:26px;right:20px;z-index:400;
+  background:rgba(8,8,8,0.88);
+  backdrop-filter:blur(16px);
+  border:1px solid var(--border);
+  border-radius:10px;padding:13px 16px;
+  display:flex;flex-direction:column;gap:7px;
+}
+.leg-title{font-size:9px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.leg-bar{
+  height:10px;border-radius:5px;margin:8px 0 4px;
+  background:linear-gradient(to right,
+    rgb(34,197,94),rgb(90,210,55),rgb(160,215,25),
+    rgb(230,195,8),rgb(244,150,14),rgb(249,115,22),
+    rgb(245,70,40),rgb(228,40,40),rgb(188,15,15),rgb(110,0,0));
+}
+.leg-ends{display:flex;justify-content:space-between;margin-bottom:3px}
+.leg-end{font-size:9px;color:var(--muted)}
+.leg-note{font-size:9px;color:rgba(255,255,255,0.22);margin-top:7px;letter-spacing:0.02em}
+
+.coords{
+  position:absolute;bottom:26px;left:380px;z-index:400;
+  background:rgba(8,8,8,0.7);border:1px solid var(--border);
+  border-radius:6px;padding:5px 12px;
+  font-size:10px;color:var(--muted);
+  font-family:'Inter',monospace;letter-spacing:0.04em;
+  pointer-events:none;opacity:0;transition:opacity 0.2s;
+}
+
+/* ── TOAST ────────────────────────────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:28px;left:50%;
+  transform:translateX(-50%) translateY(70px);
+  background:#161616;border:1px solid var(--border);
+  border-radius:8px;padding:10px 20px;
+  font-size:11px;color:rgba(255,255,255,0.6);
+  transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index:9999;white-space:nowrap;
+}
+.toast.on{transform:translateX(-50%) translateY(0)}
+
+/* ── LEAFLET OVERRIDES ──────────────────────────────────────────────────────── */
+.leaflet-control-attribution{
+  background:rgba(0,0,0,0.45)!important;
+  color:rgba(255,255,255,0.22)!important;
+  font-size:9px!important;
+}
+.leaflet-control-attribution a{color:rgba(255,255,255,0.3)!important}
+.leaflet-control-zoom{display:none}
+.leaflet-popup-content-wrapper{
+  background:#111;color:#fff;border:1px solid var(--border);
+  border-radius:8px;box-shadow:none;font-family:'Inter',sans-serif;font-size:12px;
+}
+.leaflet-popup-tip{background:#111}
+.leaflet-popup-close-button{color:var(--muted)!important}
+
+::-webkit-scrollbar{width:0}
+</style>
+</head>
+<body>
+
+<!-- LANDING ───────────────────────────────────────────────────────────────── -->
+<div id="landing">
+  <div class="dot-grid"></div>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="lc">
+    <div class="lt">SURROUND</div>
+    <div class="ls">Air quality foresight for Krakow's urban planners</div>
+    <div class="le">click anywhere to enter</div>
+  </div>
+</div>
+
+<!-- APP ────────────────────────────────────────────────────────────────────── -->
+<div id="app">
+  <div id="map"></div>
+
+  <!-- Sidebar -->
+  <div class="sb">
+    <div class="sb-logo">
+      <div class="logo-dot" id="ldot"></div>
+      <div class="logo-name">Surround</div>
+      <div class="logo-loc">Krakow · PM₂.₅</div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sec-label">Month</div>
+      <div class="months" id="mGrid"></div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sec-label">Year &nbsp;<span class="yr-val" id="yrVal">2024</span></div>
+      <div class="yr-row">
+        <span class="yr-cap">2024</span>
+        <input type="range" class="yr-sl" id="yrSl" min="2024" max="2030" value="2024" step="1">
+        <span class="yr-cap">2030</span>
+      </div>
+      <div class="yr-note" id="yrNote"></div>
+    </div>
+
+    <div class="sb-search">
+      <input class="si" id="si" type="text" placeholder="Search address or click map…" autocomplete="off">
+      <svg class="si-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <div class="sr" id="sr"></div>
+    </div>
+
+    <div class="sb-card">
+      <div class="card-empty" id="ce">
+        <div class="ce-ring">◎</div>
+        <div class="ce-text">Select a location on the map<br>or search an address above</div>
+      </div>
+      <div class="card-data" id="cd">
+        <div class="ch">
+          <div class="ch-loc" id="cloc">—</div>
+          <div class="ch-row">
+            <div class="ch-val" id="cval">—</div>
+            <div class="ch-unit">µg/m³</div>
+            <div class="ch-badge" id="cbadge">—</div>
+          </div>
+        </div>
+
+        <div class="cl">
+          <div class="cl-top">
+            <span>EU annual mean limit</span>
+            <span id="cpct">—</span>
+          </div>
+          <div class="cl-bg">
+            <div class="cl-fill" id="cfill"></div>
+            <div class="cl-mark" style="left:25%"></div>
+          </div>
+        </div>
+
+        <div class="cc">
+          <div class="sec-label">Monthly profile</div>
+          <div class="monthly" id="mbars"></div>
+        </div>
+
+        <div class="cn" id="cn-sect">
+          <div class="cn-lbl">NEIGHBOURHOOD</div>
+          <div class="cn-type" id="cn-type">—</div>
+          <div class="cn-tags" id="cn-tags"></div>
+          <div class="cn-row">
+            <div class="cn-pill" id="cn-poll">
+              <span class="cn-dot" id="cn-dot"></span>
+              <span id="cn-poll-lbl">—</span>
+            </div>
+            <div class="cn-pill" id="cn-trend">—</div>
+          </div>
+        </div>
+
+        <div class="ca">
+          <div class="ca-head">
+            <div class="ca-title">ACTIONS</div>
+            <div class="ca-badge" id="ca-badge">—</div>
+          </div>
+          <div class="ca-items" id="ca-items"></div>
+        </div>
+
+        <div class="cf">
+          <div class="cfd">
+            <div class="cfd-dot" id="cdot"></div>
+            <span id="cconf">—</span>
+          </div>
+          <button class="exp" onclick="exportPDF()">↗ Export PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map overlays -->
+  <div class="month-pill" id="mpill">—</div>
+  <div class="coords" id="coords">50.0617° N  19.9372° E</div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="leg-title">PM₂.₅ µg/m³</div>
+    <div class="leg-bar"></div>
+    <div class="leg-ends">
+      <span class="leg-end" id="legMin">—</span>
+      <span class="leg-end" id="legMid">—</span>
+      <span class="leg-end" id="legMax">—</span>
+    </div>
+    <div class="leg-note" id="legNote">relative to current month</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const STATIONS = [
+  {id:'aleja_krasinskiego', name:'Aleja Kraśnickiego', lat:50.0573, lon:19.9100},
+  {id:'kurdwanow',          name:'Kurdwanów',          lat:50.0076, lon:19.9742},
+  {id:'nowa_huta',          name:'Nowa Huta',          lat:50.0683, lon:20.0530},
+  {id:'os_piastow',         name:'Os. Piastów',        lat:50.0519, lon:19.8850},
+  {id:'os_wadow',           name:'Os. Wadów',          lat:50.0783, lon:19.8950},
+  {id:'ul_dietla',          name:'Ul. Dietla',         lat:50.0566, lon:19.9442},
+  {id:'zloty_rog',          name:'Złoty Róg',          lat:50.0647, lon:19.9450},
+];
+
+// RF model predictions per station × year × month (generated by scripts/project_pm25.py)
+// Temperature + BLH trends from 2019-2024 ERA5 projected forward; model run on each projection
+const PREDS={"aleja_krasinskiego":{"2024":{"1":90.7,"2":63.2,"3":68.0,"4":69.6,"5":45.3,"6":48.9,"7":47.4,"8":47.2,"9":51.8,"10":67.2,"11":86.4,"12":95.3},"2025":{"1":88.1,"2":63.4,"3":85.9,"4":69.5,"5":45.0,"6":46.2,"7":47.6,"8":47.1,"9":54.1,"10":67.2,"11":86.1,"12":94.3},"2026":{"1":84.1,"2":63.4,"3":78.0,"4":69.6,"5":45.1,"6":46.5,"7":47.6,"8":50.4,"9":54.1,"10":63.5,"11":86.6,"12":94.3},"2027":{"1":84.2,"2":64.0,"3":77.8,"4":69.6,"5":45.1,"6":46.3,"7":48.2,"8":50.4,"9":54.8,"10":62.0,"11":64.6,"12":92.3},"2028":{"1":84.7,"2":65.3,"3":79.2,"4":69.6,"5":45.9,"6":45.1,"7":48.2,"8":53.5,"9":56.8,"10":62.0,"11":66.7,"12":92.2},"2029":{"1":88.5,"2":68.7,"3":79.3,"4":69.6,"5":45.7,"6":45.0,"7":48.2,"8":53.5,"9":56.8,"10":60.6,"11":67.6,"12":91.0},"2030":{"1":87.6,"2":68.8,"3":79.9,"4":68.9,"5":44.8,"6":44.9,"7":47.8,"8":53.5,"9":56.6,"10":60.5,"11":67.2,"12":91.4},"2031":{"1":84.5,"2":70.4,"3":80.4,"4":68.9,"5":44.9,"6":44.7,"7":47.7,"8":54.8,"9":56.6,"10":59.1,"11":67.3,"12":91.2},"2032":{"1":84.4,"2":69.8,"3":80.3,"4":68.9,"5":44.8,"6":44.7,"7":47.7,"8":54.9,"9":57.6,"10":58.7,"11":67.8,"12":67.4},"2033":{"1":84.3,"2":70.0,"3":79.9,"4":68.9,"5":44.8,"6":44.8,"7":47.9,"8":55.0,"9":55.6,"10":58.7,"11":67.8,"12":67.6},"2034":{"1":84.3,"2":69.8,"3":79.0,"4":68.9,"5":44.8,"6":45.1,"7":48.0,"8":54.9,"9":55.7,"10":58.7,"11":68.9,"12":67.2}},"kurdwanow":{"2024":{"1":90.2,"2":61.7,"3":66.7,"4":68.1,"5":44.5,"6":48.1,"7":47.1,"8":47.3,"9":52.0,"10":67.5,"11":85.7,"12":95.1},"2025":{"1":87.2,"2":61.9,"3":85.2,"4":68.0,"5":44.2,"6":45.5,"7":47.3,"8":47.2,"9":54.4,"10":67.6,"11":85.5,"12":94.1},"2026":{"1":83.2,"2":61.9,"3":77.6,"4":68.2,"5":44.3,"6":45.8,"7":47.3,"8":50.6,"9":54.3,"10":64.0,"11":85.9,"12":94.1},"2027":{"1":83.4,"2":62.6,"3":77.4,"4":68.2,"5":44.4,"6":45.6,"7":47.9,"8":50.6,"9":55.1,"10":62.6,"11":63.6,"12":92.1},"2028":{"1":83.7,"2":63.7,"3":78.7,"4":68.2,"5":45.1,"6":44.6,"7":47.9,"8":53.8,"9":57.2,"10":62.6,"11":65.5,"12":92.0},"2029":{"1":87.4,"2":66.8,"3":78.8,"4":68.2,"5":45.0,"6":44.4,"7":47.9,"8":53.8,"9":57.2,"10":60.9,"11":66.1,"12":90.8},"2030":{"1":86.4,"2":66.8,"3":79.5,"4":67.5,"5":44.2,"6":44.3,"7":47.6,"8":53.8,"9":57.0,"10":60.8,"11":65.7,"12":91.2},"2031":{"1":83.5,"2":68.5,"3":80.0,"4":67.5,"5":44.3,"6":44.0,"7":47.4,"8":55.0,"9":57.0,"10":59.4,"11":65.8,"12":90.9},"2032":{"1":83.5,"2":67.9,"3":79.9,"4":67.5,"5":44.2,"6":44.0,"7":47.4,"8":55.1,"9":58.0,"10":59.0,"11":66.2,"12":66.3},"2033":{"1":83.4,"2":68.0,"3":79.6,"4":67.5,"5":44.2,"6":44.1,"7":47.6,"8":55.2,"9":55.8,"10":58.9,"11":66.2,"12":66.4},"2034":{"1":83.4,"2":68.0,"3":78.6,"4":67.5,"5":44.2,"6":44.4,"7":47.7,"8":55.1,"9":55.9,"10":58.9,"11":67.3,"12":66.2}},"nowa_huta":{"2024":{"1":90.1,"2":60.0,"3":65.2,"4":66.3,"5":42.8,"6":47.0,"7":46.9,"8":47.5,"9":52.4,"10":67.0,"11":85.3,"12":94.8},"2025":{"1":87.3,"2":60.2,"3":84.8,"4":66.3,"5":42.6,"6":44.4,"7":47.2,"8":47.7,"9":54.4,"10":67.1,"11":87.2,"12":94.8},"2026":{"1":83.2,"2":60.2,"3":77.2,"4":66.4,"5":42.7,"6":44.4,"7":47.2,"8":50.8,"9":54.4,"10":62.1,"11":84.9,"12":93.7},"2027":{"1":83.3,"2":61.3,"3":77.1,"4":66.4,"5":42.7,"6":44.6,"7":47.7,"8":50.9,"9":55.0,"10":62.1,"11":62.2,"12":93.1},"2028":{"1":83.6,"2":65.2,"3":78.4,"4":66.4,"5":43.6,"6":43.2,"7":47.7,"8":53.8,"9":54.9,"10":62.1,"11":64.3,"12":92.5},"2029":{"1":87.2,"2":65.3,"3":78.5,"4":66.4,"5":43.6,"6":43.1,"7":47.7,"8":53.8,"9":57.2,"10":62.0,"11":64.7,"12":90.6},"2030":{"1":86.5,"2":65.6,"3":79.0,"4":65.7,"5":42.7,"6":43.0,"7":47.4,"8":53.8,"9":57.0,"10":60.9,"11":64.3,"12":89.9},"2031":{"1":83.4,"2":66.2,"3":79.5,"4":65.7,"5":42.9,"6":42.5,"7":47.0,"8":55.1,"9":57.0,"10":59.1,"11":64.7,"12":90.4},"2032":{"1":83.3,"2":66.2,"3":79.2,"4":65.7,"5":42.8,"6":42.5,"7":47.0,"8":55.1,"9":56.2,"10":59.1,"11":64.9,"12":90.4},"2033":{"1":83.2,"2":66.3,"3":79.1,"4":65.7,"5":42.9,"6":42.5,"7":47.3,"8":55.3,"9":55.8,"10":59.1,"11":64.9,"12":65.5},"2034":{"1":83.2,"2":66.2,"3":78.1,"4":65.7,"5":42.9,"6":42.8,"7":47.3,"8":55.2,"9":55.9,"10":57.4,"11":66.1,"12":65.4}},"os_piastow":{"2024":{"1":89.3,"2":58.2,"3":60.5,"4":63.1,"5":41.8,"6":45.8,"7":46.5,"8":48.0,"9":52.7,"10":68.2,"11":84.1,"12":94.2},"2025":{"1":89.4,"2":57.9,"3":84.7,"4":63.1,"5":41.8,"6":43.8,"7":46.7,"8":47.9,"9":52.9,"10":68.0,"11":88.2,"12":93.2},"2026":{"1":86.1,"2":58.0,"3":83.4,"4":63.2,"5":41.7,"6":43.0,"7":46.7,"8":51.2,"9":55.2,"10":67.5,"11":84.1,"12":91.7},"2027":{"1":82.0,"2":58.7,"3":77.2,"4":63.2,"5":41.8,"6":43.1,"7":47.2,"8":51.4,"9":55.8,"10":67.6,"11":62.5,"12":91.7},"2028":{"1":82.3,"2":59.9,"3":78.2,"4":63.2,"5":42.8,"6":42.4,"7":47.2,"8":54.4,"9":55.7,"10":62.4,"11":62.2,"12":90.2},"2029":{"1":82.2,"2":62.0,"3":78.2,"4":63.2,"5":42.7,"6":42.2,"7":47.1,"8":54.4,"9":55.8,"10":61.1,"11":63.4,"12":90.5},"2030":{"1":85.4,"2":62.0,"3":78.9,"4":62.8,"5":42.8,"6":42.1,"7":46.9,"8":54.4,"9":57.9,"10":60.9,"11":61.5,"12":90.3},"2031":{"1":83.2,"2":63.2,"3":79.4,"4":62.8,"5":42.0,"6":41.7,"7":46.5,"8":55.6,"9":57.9,"10":60.8,"11":62.2,"12":63.2},"2032":{"1":82.3,"2":62.4,"3":79.2,"4":62.8,"5":42.2,"6":41.7,"7":46.5,"8":55.7,"9":56.1,"10":58.9,"11":62.2,"12":62.8},"2033":{"1":82.3,"2":62.4,"3":79.1,"4":62.8,"5":42.2,"6":41.7,"7":46.7,"8":55.8,"9":55.2,"10":57.7,"11":63.5,"12":62.8},"2034":{"1":82.2,"2":62.5,"3":78.1,"4":62.8,"5":42.2,"6":42.4,"7":46.8,"8":55.7,"9":55.2,"10":57.3,"11":63.5,"12":64.0}},"os_wadow":{"2024":{"1":89.7,"2":59.3,"3":61.2,"4":64.9,"5":42.0,"6":46.2,"7":46.6,"8":47.8,"9":52.3,"10":67.8,"11":83.9,"12":94.4},"2025":{"1":89.7,"2":58.7,"3":84.7,"4":64.8,"5":41.9,"6":44.0,"7":46.9,"8":47.7,"9":52.4,"10":67.6,"11":88.7,"12":93.5},"2026":{"1":86.4,"2":58.8,"3":83.5,"4":64.9,"5":41.9,"6":43.2,"7":46.9,"8":50.8,"9":54.6,"10":67.0,"11":84.2,"12":92.0},"2027":{"1":82.3,"2":59.5,"3":76.8,"4":64.9,"5":42.0,"6":43.2,"7":47.5,"8":50.9,"9":55.1,"10":67.1,"11":63.4,"12":92.0},"2028":{"1":82.7,"2":60.7,"3":77.8,"4":64.9,"5":43.1,"6":42.6,"7":47.5,"8":54.0,"9":55.1,"10":61.9,"11":63.3,"12":90.3},"2029":{"1":82.6,"2":63.4,"3":77.8,"4":64.9,"5":42.9,"6":42.4,"7":47.4,"8":54.0,"9":55.1,"10":60.7,"11":64.6,"12":90.7},"2030":{"1":86.0,"2":63.4,"3":78.4,"4":64.3,"5":42.9,"6":42.3,"7":47.1,"8":54.0,"9":57.2,"10":60.5,"11":62.7,"12":90.4},"2031":{"1":83.4,"2":65.2,"3":78.9,"4":64.3,"5":42.1,"6":41.9,"7":46.7,"8":55.2,"9":57.2,"10":60.4,"11":63.4,"12":64.2},"2032":{"1":82.4,"2":64.3,"3":78.7,"4":64.3,"5":42.2,"6":41.9,"7":46.7,"8":55.3,"9":55.6,"10":58.7,"11":63.4,"12":63.8},"2033":{"1":82.4,"2":64.3,"3":78.4,"4":64.3,"5":42.3,"6":41.9,"7":46.9,"8":55.5,"9":54.7,"10":57.5,"11":64.6,"12":63.8},"2034":{"1":82.3,"2":64.3,"3":77.5,"4":64.3,"5":42.3,"6":42.5,"7":47.0,"8":55.3,"9":54.7,"10":57.2,"11":64.6,"12":65.1}},"ul_dietla":{"2024":{"1":92.2,"2":64.5,"3":68.4,"4":69.9,"5":46.2,"6":49.7,"7":47.7,"8":47.5,"9":51.7,"10":68.8,"11":88.7,"12":96.8},"2025":{"1":89.8,"2":64.6,"3":88.2,"4":69.9,"5":46.0,"6":46.9,"7":48.0,"8":47.4,"9":54.1,"10":68.8,"11":88.6,"12":95.8},"2026":{"1":86.6,"2":64.6,"3":80.6,"4":70.0,"5":46.1,"6":47.3,"7":48.0,"8":50.6,"9":54.0,"10":64.8,"11":88.6,"12":95.9},"2027":{"1":86.7,"2":65.1,"3":80.5,"4":70.0,"5":46.1,"6":47.1,"7":48.4,"8":50.6,"9":54.9,"10":62.9,"11":65.3,"12":93.8},"2028":{"1":86.9,"2":66.0,"3":81.6,"4":70.0,"5":46.8,"6":46.1,"7":48.4,"8":53.8,"9":57.1,"10":62.9,"11":67.2,"12":93.7},"2029":{"1":90.7,"2":69.3,"3":81.7,"4":70.0,"5":46.7,"6":46.0,"7":48.4,"8":53.8,"9":57.1,"10":61.0,"11":68.1,"12":92.5},"2030":{"1":89.6,"2":69.3,"3":82.4,"4":69.3,"5":45.9,"6":46.0,"7":48.1,"8":53.8,"9":57.0,"10":60.8,"11":67.7,"12":92.7},"2031":{"1":86.9,"2":71.0,"3":82.7,"4":69.3,"5":46.0,"6":45.8,"7":48.0,"8":55.1,"9":56.9,"10":59.4,"11":67.8,"12":92.5},"2032":{"1":86.8,"2":70.4,"3":82.8,"4":69.3,"5":45.9,"6":45.8,"7":48.0,"8":55.2,"9":58.0,"10":58.8,"11":68.3,"12":67.7},"2033":{"1":86.8,"2":70.5,"3":82.6,"4":69.3,"5":46.0,"6":45.8,"7":48.2,"8":55.3,"9":55.8,"10":58.8,"11":68.3,"12":67.8},"2034":{"1":86.7,"2":70.3,"3":81.8,"4":69.3,"5":46.0,"6":46.1,"7":48.3,"8":55.2,"9":55.9,"10":58.8,"11":69.3,"12":67.6}},"zloty_rog":{"2024":{"1":91.5,"2":63.2,"3":64.8,"4":68.7,"5":45.5,"6":48.8,"7":47.3,"8":47.3,"9":52.1,"10":69.5,"11":87.5,"12":96.2},"2025":{"1":91.5,"2":63.2,"3":87.5,"4":68.7,"5":45.2,"6":46.3,"7":47.5,"8":47.4,"9":51.9,"10":68.7,"11":89.1,"12":95.1},"2026":{"1":88.5,"2":63.2,"3":86.4,"4":68.8,"5":45.3,"6":46.6,"7":47.5,"8":50.5,"9":52.2,"10":68.9,"11":86.7,"12":93.7},"2027":{"1":85.3,"2":63.8,"3":79.7,"4":68.8,"5":45.3,"6":45.9,"7":48.1,"8":50.5,"9":54.6,"10":62.7,"11":66.3,"12":93.1},"2028":{"1":85.8,"2":64.7,"3":80.5,"4":68.8,"5":46.4,"6":45.5,"7":48.1,"8":53.7,"9":54.5,"10":61.1,"11":66.2,"12":91.3},"2029":{"1":85.7,"2":67.9,"3":80.5,"4":68.8,"5":45.9,"6":45.4,"7":48.1,"8":53.7,"9":54.5,"10":61.1,"11":66.9,"12":91.8},"2030":{"1":89.0,"2":68.1,"3":81.2,"4":68.1,"5":45.2,"6":45.3,"7":47.8,"8":53.7,"9":54.5,"10":60.8,"11":66.5,"12":92.2},"2031":{"1":86.6,"2":69.1,"3":81.6,"4":68.1,"5":45.2,"6":45.0,"7":47.6,"8":54.9,"9":54.6,"10":60.7,"11":66.8,"12":66.8},"2032":{"1":85.6,"2":68.9,"3":81.5,"4":68.1,"5":45.0,"6":45.1,"7":47.6,"8":55.0,"9":54.4,"10":59.0,"11":67.0,"12":66.8},"2033":{"1":85.6,"2":69.0,"3":81.4,"4":68.1,"5":45.2,"6":45.2,"7":47.8,"8":55.2,"9":54.4,"10":57.4,"11":67.0,"12":66.6},"2034":{"1":85.5,"2":68.9,"3":80.6,"4":68.1,"5":45.2,"6":45.4,"7":47.9,"8":55.0,"9":54.4,"10":57.1,"11":68.2,"12":66.6}}};
+const MNAME = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MFULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const PRESETS = [
+  {addr:'Rynek Główny',          lat:50.0617, lon:19.9372, base:30},
+  {addr:'Nowa Huta',             lat:50.0683, lon:20.0530, base:37},
+  {addr:'Kazimierz',             lat:50.0517, lon:19.9441, base:29},
+  {addr:'Krowodrza',             lat:50.0764, lon:19.9257, base:25},
+  {addr:'Podgórze',              lat:50.0400, lon:19.9500, base:26},
+  {addr:'Bronowice',             lat:50.0650, lon:19.8800, base:22},
+  {addr:'Mistrzejowice',         lat:50.0900, lon:20.0100, base:31},
+  {addr:'Dębniki',               lat:50.0400, lon:19.9200, base:24},
+  {addr:'Śródmieście',           lat:50.0618, lon:19.9400, base:31},
+  {addr:'Prądnik Czerwony',      lat:50.0889, lon:19.9600, base:28},
+];
+
+// ── Land use IDW for neighbourhood classification ─────────────────────────────
+const LUSE={
+  aleja_krasinskiego:{cu:0.136,du:0.148,ind:0.156,grn:0.560,agr:0.000,fst:0.000},
+  kurdwanow:         {cu:0.171,du:0.399,ind:0.158,grn:0.058,agr:0.183,fst:0.000},
+  nowa_huta:         {cu:0.224,du:0.116,ind:0.232,grn:0.374,agr:0.053,fst:0.000},
+  os_piastow:        {cu:0.000,du:0.056,ind:0.016,grn:0.088,agr:0.522,fst:0.317},
+  os_wadow:          {cu:0.436,du:0.127,ind:0.303,grn:0.134,agr:0.000,fst:0.000},
+  ul_dietla:         {cu:0.550,du:0.000,ind:0.337,grn:0.113,agr:0.000,fst:0.000},
+  zloty_rog:         {cu:0.383,du:0.000,ind:0.497,grn:0.107,agr:0.000,fst:0.000},
+};
+const LUSE_LABELS={cu:'Continuous urban',du:'Residential',ind:'Roads & industry',grn:'Parks & green',agr:'Agriculture',fst:'Forest'};
+
+function luseIdw(lat,lon){
+  const keys=['cu','du','ind','grn','agr','fst'];
+  let ws=0;
+  const acc={cu:0,du:0,ind:0,grn:0,agr:0,fst:0};
+  STATIONS.forEach(s=>{
+    const d2=(lat-s.lat)**2+((lon-s.lon)*0.64)**2;
+    const w=1/(d2+0.00004);
+    ws+=w;
+    keys.forEach(k=>acc[k]+=w*(LUSE[s.id]?.[k]??0));
+  });
+  keys.forEach(k=>acc[k]/=ws);
+  return acc;
+}
+
+function classifyHood(c){
+  if(c.fst>0.12) return{type:'forest',    label:'Forest & Natural Edge',    accent:'#22c55e'};
+  if(c.agr>0.25) return{type:'peri-urban',label:'Peri-Urban Agricultural',  accent:'#fbbf24'};
+  if(c.grn>0.32) return{type:'parkside',  label:'Park-Side Urban',           accent:'#4ade80'};
+  if(c.cu>0.40)  return{type:'centre',    label:'Dense Urban Core',          accent:'#ff4020'};
+  if(c.du>0.28&&c.cu<0.22) return{type:'residential',label:'Residential Suburb',accent:'#60a5fa'};
+  if(c.ind>0.35) return{type:'industrial',label:'Industrial Corridor',       accent:'#a78bfa'};
+  return{type:'mixed',label:'Mixed Urban',accent:'rgba(255,255,255,0.25)'};
+}
+
+function topCats(cats){
+  return Object.entries(cats)
+    .filter(([,v])=>v>0.08)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,3)
+    .map(([k,v])=>({label:LUSE_LABELS[k]||k,pct:Math.round(v*100)}));
+}
+
+// [neighbourhood type][severity 0–3] → 3 × 4-5-word suggestions
+const ACT={
+  centre:[
+    ['Widen pedestrian zones now','Green façade grant scheme','Smart congestion pricing install'],
+    ['Enforce low-emission zone','Electrify city deliveries now','Retrofit canyon ventilation'],
+    ['Close diesel streets daily','Emergency boiler audit blitz','Ban wood-burning stoves'],
+    ['Winter diesel ban enforce','Mandatory clean heating now','Smog closure protocol activate'],
+  ],
+  parkside:[
+    ['Expand park pedestrian access','Ban engine-idling here','Add green corridor link'],
+    ['Restrict park-edge traffic now','Boost active travel routes','Urban forest canopy expand'],
+    ['Close road through green zone','Air quality monitors install','Car-free zone extend now'],
+    ['Emergency park closure order','Mandate car-free perimeter','Critical green zone enforce'],
+  ],
+  residential:[
+    ['Insulate old housing stock','Heat pump awareness drive','Connect cycle routes here'],
+    ['Subsidise heat pump swap','Door-to-door boiler survey','Extend district heating grid'],
+    ['Mandatory boiler inspection now','Enforce no-burn weekdays','Crisis heating grant push'],
+    ['Emergency boiler replacement now','Enforce solid fuel ban','Deploy heating alternatives fast'],
+  ],
+  industrial:[
+    ['Tighten stack emission caps','Plant green buffer strip','Add fence-line sensors'],
+    ['Install fence-line monitors now','Incentivise clean production','Capture industrial waste heat'],
+    ['Continuous stack emissions audit','Mandate green energy switch','Enforce buffer zone now'],
+    ['Trigger production pause protocol','Emergency industrial site audit','Bond pollution liability now'],
+  ],
+  forest:[
+    ['Protect forest edge now','Extend bike lanes west','Ban garden waste burns'],
+    ['Monitor biogenic VOC levels','Restrict road freight here','Plant native woodland strips'],
+    ['Cap freight volume here','No forest-edge burn rule','Install stagnation early warning'],
+    ['Cap western road entry','Emergency forest buffer zone','Launch biogenic VOC audit'],
+  ],
+  'peri-urban':[
+    ['Support clean farm practices','Promote agri-environment scheme','Protect remaining green belt'],
+    ['Ban field burning now','Monitor agricultural emissions','Rewild unused farm strips'],
+    ['Strict harvest burn controls','Incentivise organic transition','Plant air quality buffer'],
+    ['Emergency agricultural audit','Zero-burn field mandate','Green belt protection order'],
+  ],
+  mixed:[
+    ['Green space access improve','Add EV charging point','Deploy local air sensor'],
+    ['Low traffic neighbourhood push','Improve walking routes here','Plant street tree canopy'],
+    ['Restrict through-traffic now','Extend district heating here','Emergency boiler survey launch'],
+    ['Critical intervention package','Enforce emission-free zone','Mandatory air quality plan'],
+  ],
+};
+
+function getActions(hoodType,v,lat,lon,mo){
+  const sev=v<50?0:v<70?1:v<90?2:3;
+  const delta=predIdw(lat,lon,2030,mo)-predIdw(lat,lon,2024,mo);
+  const trend=delta>4?'worsening':delta<-4?'improving':'stable';
+  let label,lc,lbg;
+  if(trend==='worsening'&&sev===3){label='CRITICAL ↑↑';lc='#f87171';lbg='rgba(239,68,68,0.15)';}
+  else if(trend==='worsening')    {label='URGENT ↑';   lc='#fb923c';lbg='rgba(251,146,60,0.15)';}
+  else if(sev===3)                {label='ELEVATED';   lc='#fbbf24';lbg='rgba(251,191,36,0.13)';}
+  else if(sev===2)                {label='PRIORITY';   lc='#facc15';lbg='rgba(250,204,21,0.13)';}
+  else if(trend==='improving')    {label='IMPROVING ↓';lc='#4ade80';lbg='rgba(34,197,94,0.13)';}
+  else if(sev===1)                {label='MODERATE';   lc='#94a3b8';lbg='rgba(148,163,184,0.12)';}
+  else                            {label='MAINTAIN';   lc='rgba(255,255,255,0.3)';lbg='rgba(255,255,255,0.06)';}
+  return{s:(ACT[hoodType]||ACT.mixed)[sev],label,lc,lbg};
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let month = new Date().getMonth();
+let year  = 2024;
+let selLat=null,selLon=null,selBase=null,selName=null;
+let map, cells=[], selMarker=null;
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+// IDW from RF model predictions at the 7 stations.
+// mo is 1-indexed (Jan=1 … Dec=12) to match PREDS keys.
+function predIdw(lat,lon,yr,mo){
+  let ws=0,vs=0;
+  STATIONS.forEach(s=>{
+    const pm25=PREDS?.[s.id]?.[String(yr)]?.[String(mo)]??65;
+    const d2=Math.pow(lat-s.lat,2)+Math.pow((lon-s.lon)*0.64,2);
+    const w=1/(d2+0.00004);
+    ws+=w; vs+=w*pm25;
+  });
+  return vs/ws;
+}
+
+// 10-segment gradient: green → gold → orange → red → maroon
+// Color is normalized relative to current month's min/max so spatial variation is always visible.
+const CSTOPS=[
+  [34,197,94],[90,210,55],[160,215,25],
+  [230,195,8],[244,150,14],[249,115,22],
+  [245,70,40],[228,40,40],[188,15,15],[110,0,0]
+];
+
+function color(v,mn,mx,a=0.62){
+  const t=Math.max(0,Math.min(1,(v-mn)/(mx===mn?1:mx-mn)));
+  const raw=t*(CSTOPS.length-1);
+  const i=Math.min(Math.floor(raw),CSTOPS.length-2);
+  const f=raw-i;
+  const [r0,g0,b0]=CSTOPS[i],[r1,g1,b1]=CSTOPS[i+1];
+  return`rgba(${Math.round(r0+(r1-r0)*f)},${Math.round(g0+(g1-g0)*f)},${Math.round(b0+(b1-b0)*f)},${a})`;
+}
+
+function updateLegend(mn,mx){
+  document.getElementById('legMin').textContent=Math.round(mn)+' µg/m³';
+  document.getElementById('legMid').textContent=Math.round((mn+mx)/2)+' µg/m³';
+  document.getElementById('legMax').textContent=Math.round(mx)+' µg/m³';
+  document.getElementById('legNote').textContent=
+    `relative scale · ${MFULL[month]} ${year}`;
+}
+
+function status(v){
+  if(v<45) return{label:'Relatively Low', col:'#22C55E',bg:'rgba(34,197,94,0.13)' };
+  if(v<60) return{label:'Elevated',       col:'#EAB308',bg:'rgba(234,179,8,0.13)' };
+  if(v<75) return{label:'High',           col:'#F97316',bg:'rgba(249,115,22,0.13)'};
+  if(v<90) return{label:'Very High',      col:'#EF4444',bg:'rgba(239,68,68,0.13)' };
+  return     {label:'Extreme',         col:'#8B0000',bg:'rgba(139,0,0,0.18)'};
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
+const STEP=0.005, LAMIN=49.955, LAMAX=50.135, LOMIN=19.820, LOMAX=20.145;
+
+function buildGrid(){
+  const items=[];
+  for(let la=LAMIN;la<LAMAX;la+=STEP)
+    for(let lo=LOMIN;lo<LOMAX;lo+=STEP)
+      items.push({la,lo,v:predIdw(la+STEP/2,lo+STEP/2,year,month+1)});
+  const vs=items.map(x=>x.v);
+  const mn=Math.min(...vs),mx=Math.max(...vs);
+  items.forEach(({la,lo,v})=>{
+    const r=L.rectangle([[la,lo],[la+STEP,lo+STEP]],{
+      color:'transparent',weight:0,
+      fillColor:color(v,mn,mx),fillOpacity:0.38
+    }).addTo(map);
+    r.on('click',()=>pick(la+STEP/2,lo+STEP/2,null));
+    cells.push({r,la,lo});
+  });
+  updateLegend(mn,mx);
+}
+
+function refreshGrid(){
+  const vals=cells.map(({la,lo})=>predIdw(la+STEP/2,lo+STEP/2,year,month+1));
+  const mn=Math.min(...vals),mx=Math.max(...vals);
+  cells.forEach(({r},i)=>r.setStyle({fillColor:color(vals[i],mn,mx),fillOpacity:0.38}));
+  updateLegend(mn,mx);
+  dotSync();
+}
+
+// ── Station markers ───────────────────────────────────────────────────────────
+function buildMarkers(){
+  STATIONS.forEach(s=>{
+    const v=predIdw(s.lat,s.lon,year,month+1);
+    const st=status(v);
+    const ico=L.divIcon({
+      className:'',
+      html:`<div style="width:11px;height:11px;border-radius:50%;
+             background:${st.col};border:2px solid rgba(255,255,255,0.25);
+             box-shadow:0 0 14px ${st.col}88;cursor:pointer;
+             transition:transform 0.2s" onmouseover="this.style.transform='scale(1.5)'"
+             onmouseout="this.style.transform='scale(1)'"></div>`,
+      iconAnchor:[5,5]
+    });
+    L.marker([s.lat,s.lon],{icon:ico})
+      .addTo(map)
+      .bindPopup(`<b>${s.name}</b><br>${Math.round(v)} µg/m³ · ${MFULL[month]}`,{maxWidth:180})
+      .on('click',()=>pick(s.lat,s.lon,s.name));
+  });
+}
+
+// ── Month UI ──────────────────────────────────────────────────────────────────
+function buildMonthGrid(){
+  const g=document.getElementById('mGrid');
+  MNAME.forEach((m,i)=>{
+    const b=document.createElement('button');
+    b.className='mb'+(i===month?' on':'');
+    b.textContent=m;
+    b.onclick=()=>setMonth(i);
+    g.appendChild(b);
+  });
+}
+
+function setMonth(i){
+  month=i;
+  document.querySelectorAll('.mb').forEach((b,j)=>b.classList.toggle('on',j===i));
+  document.getElementById('mpill').textContent=MFULL[i];
+  refreshGrid();
+  if(selLat!==null)renderCard();
+}
+
+// ── Pick ──────────────────────────────────────────────────────────────────────
+function pick(lat,lon,name){
+  selLat=lat;selLon=lon;selBase=1;
+  selName=name||nearestName(lat,lon);
+  if(selMarker)map.removeLayer(selMarker);
+  selMarker=L.circleMarker([lat,lon],{
+    radius:9,color:'#fff',weight:2,fillOpacity:0
+  }).addTo(map);
+  renderCard();
+}
+
+function nearestName(lat,lon){
+  let best=PRESETS[0],bd=Infinity;
+  PRESETS.forEach(p=>{
+    const d=Math.hypot(lat-p.lat,lon-p.lon);
+    if(d<bd){bd=d;best=p;}
+  });
+  return bd<0.06?best.addr:`${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`;
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────────
+function renderCard(){
+  const v=predIdw(selLat,selLon,year,month+1);
+  const st=status(v);
+
+  document.getElementById('ce').style.display='none';
+  const cd=document.getElementById('cd');
+  cd.classList.add('on');
+
+  document.getElementById('cloc').textContent=selName;
+
+  const vEl=document.getElementById('cval');
+  vEl.textContent=Math.round(v);
+  vEl.style.color=st.col;
+
+  const badge=document.getElementById('cbadge');
+  badge.textContent=st.label;
+  badge.style.color=st.col;
+  badge.style.background=st.bg;
+  badge.style.borderColor=st.col+'44';
+
+  // Scale to 130 µg/m³ (Krakow peak range); EU annual limit 25 µg/m³ marked
+  const pct=Math.min(v/130,1);
+  const fill=document.getElementById('cfill');
+  fill.style.width=(pct*100)+'%';
+  fill.style.background=st.col;
+  const ratio=Math.round(v/25*100);
+  document.getElementById('cpct').textContent=ratio+'% of EU 25 µg/m³ limit';
+
+  // Monthly bars
+  const bars=document.getElementById('mbars');
+  bars.innerHTML='';
+  const vals=Array.from({length:12},(_,i)=>predIdw(selLat,selLon,year,i+1));
+  const maxV=Math.max(...vals);
+  vals.forEach((mv,i)=>{
+    const s=status(mv);
+    const h=Math.max(Math.round(mv/maxV*40),2);
+    const col=document.createElement('div');
+    col.className='bc'+(i===month?' cur':'');
+    col.innerHTML=`<div class="bf" style="height:${h}px;background:${s.col};opacity:${i===month?1:0.45}"></div>
+                   <div class="bl">${MNAME[i][0]}</div>`;
+    bars.appendChild(col);
+  });
+
+  // Confidence
+  const near=STATIONS.some(s=>Math.hypot(selLat-s.lat,selLon-s.lon)<0.045);
+  const dot=document.getElementById('cdot');
+  const conf=document.getElementById('cconf');
+  const projLabel=year===2024?'RF model · ERA5 baseline':'ERA5 climate trend · '+year+' projection';
+  if(near){dot.style.background='#22C55E';conf.textContent=projLabel+' · validated station';}
+  else{dot.style.background='#EAB308';conf.textContent=projLabel+' · IDW interpolated';}
+
+  // Neighbourhood analysis
+  const cats=luseIdw(selLat,selLon);
+  const hood=classifyHood(cats);
+  const tops=topCats(cats);
+  const cnSect=document.getElementById('cn-sect');
+  cnSect.style.borderLeftColor=hood.accent;
+  document.getElementById('cn-type').textContent=hood.label;
+  document.getElementById('cn-tags').innerHTML=
+    tops.map(t=>`<span class="cn-tag">${t.pct}% ${t.label}</span>`).join('');
+  const pollPill=document.getElementById('cn-poll');
+  pollPill.style.color=st.col;
+  pollPill.style.background=st.bg;
+  document.getElementById('cn-dot').style.background=st.col;
+  document.getElementById('cn-poll-lbl').textContent=st.label;
+  const delta30=predIdw(selLat,selLon,2030,month+1)-predIdw(selLat,selLon,2024,month+1);
+  const trendLbl=delta30>4?'↑ WORSENING':delta30<-4?'↓ IMPROVING':'→ STABLE';
+  const trendCol=delta30>4?'#f87171':delta30<-4?'#4ade80':'#94a3b8';
+  const trendBg=delta30>4?'rgba(239,68,68,0.12)':delta30<-4?'rgba(34,197,94,0.12)':'rgba(148,163,184,0.10)';
+  const trendPill=document.getElementById('cn-trend');
+  trendPill.textContent=trendLbl;
+  trendPill.style.color=trendCol;
+  trendPill.style.background=trendBg;
+
+  // Actions
+  const act=getActions(hood.type,v,selLat,selLon,month+1);
+  const cab=document.getElementById('ca-badge');
+  cab.textContent=act.label; cab.style.color=act.lc; cab.style.background=act.lbg;
+  document.getElementById('ca-items').innerHTML=act.s
+    .map(t=>`<div class="ca-item"><span class="ca-arr">→</span>${t}</div>`).join('');
+
+  dotSync(st);
+}
+
+function dotSync(st){
+  if(!st){
+    const v=predIdw(50.062,19.944,year,month+1);
+    st=status(v);
+  }
+  const d=document.getElementById('ldot');
+  d.style.background=st.col;
+  d.style.boxShadow=`0 0 14px ${st.col}`;
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+const siEl=document.getElementById('si');
+const srEl=document.getElementById('sr');
+
+siEl.addEventListener('input',()=>{
+  const q=siEl.value.toLowerCase().trim();
+  if(q.length<2){srEl.style.display='none';return;}
+  const hits=PRESETS.filter(p=>p.addr.toLowerCase().includes(q)).slice(0,5);
+  if(!hits.length){srEl.style.display='none';return;}
+  srEl.innerHTML=hits.map(p=>`
+    <div class="sri" data-lat="${p.lat}" data-lon="${p.lon}" data-base="${p.base}" data-addr="${p.addr}">
+      <div class="sri-main">${p.addr}</div>
+      <div class="sri-sub">Krakow, Poland</div>
+    </div>`).join('');
+  srEl.style.display='block';
+  srEl.querySelectorAll('.sri').forEach(el=>{
+    el.onclick=()=>{
+      siEl.value=el.dataset.addr;
+      srEl.style.display='none';
+      map.flyTo([+el.dataset.lat,+el.dataset.lon],14,{duration:1.2,easeLinearity:0.25});
+      pick(+el.dataset.lat,+el.dataset.lon,el.dataset.addr);
+    };
+  });
+});
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.sb-search'))srEl.style.display='none';
+});
+
+// ── Coord display ─────────────────────────────────────────────────────────────
+let coordTimer;
+function showCoords(lat,lon){
+  const el=document.getElementById('coords');
+  el.textContent=`${lat.toFixed(4)}° N  ${lon.toFixed(4)}° E`;
+  el.style.opacity='1';
+  clearTimeout(coordTimer);
+  coordTimer=setTimeout(()=>el.style.opacity='0',2000);
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportPDF(){toast('PDF export available in the deployed version')}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  setTimeout(()=>t.classList.remove('on'),2800);
+}
+
+// ── Year slider (2024–2030) ───────────────────────────────────────────────────
+document.getElementById('yrSl').addEventListener('input',e=>{
+  year=+e.target.value;
+  const yvEl=document.getElementById('yrVal');
+  yvEl.textContent=year;
+  yvEl.style.color=year===2024?'var(--text)':'#EAB308';
+  document.getElementById('yrNote').textContent=
+    year===2024?'':'ERA5 climate trend · RF model projection';
+  refreshGrid();
+  if(selLat!==null)renderCard();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById('landing').addEventListener('click',()=>{
+  document.getElementById('landing').classList.add('out');
+  document.getElementById('app').classList.add('on');
+  setTimeout(initMap,600);
+});
+
+function initMap(){
+  map=L.map('map',{center:[50.055,19.980],zoom:12,zoomControl:false});
+
+  // Base tiles: Voyager (shows buildings + green areas) darkened via pane filter
+  map.createPane('basepane');
+  map.getPane('basepane').style.zIndex=199;
+  map.getPane('basepane').style.filter='brightness(0.30) contrast(1.18) saturate(0.55)';
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',{
+    pane:'basepane',
+    attribution:'&copy; OpenStreetMap &copy; CARTO',
+    subdomains:'abcd',maxZoom:19
+  }).addTo(map);
+
+  buildGrid();
+  buildMarkers();
+
+  // Single city label — no other tile labels
+  L.marker([50.062,19.944],{
+    icon:L.divIcon({
+      className:'',
+      html:`<div style="font-family:Inter,sans-serif;font-size:11px;font-weight:700;
+             letter-spacing:0.16em;text-transform:uppercase;
+             color:rgba(255,255,255,0.72);
+             text-shadow:0 1px 4px rgba(0,0,0,0.95),0 0 16px rgba(0,0,0,0.7);
+             white-space:nowrap;pointer-events:none;user-select:none">KRAKÓW</div>`,
+      iconAnchor:[24,6]
+    }),
+    interactive:false,zIndexOffset:-1000
+  }).addTo(map);
+  buildMonthGrid();
+  document.getElementById('mpill').textContent=MFULL[month];
+  dotSync();
+
+  map.on('click',e=>pick(e.latlng.lat,e.latlng.lng,null));
+  map.on('mousemove',e=>showCoords(e.latlng.lat,e.latlng.lng));
+}
+</script>
+</body>
+</html>
